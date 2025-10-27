@@ -5,6 +5,7 @@ import 'package:unicharge/models/booking_model.dart';
 import 'package:unicharge/models/slot_model.dart';
 import 'package:unicharge/models/enums.dart';
 import 'package:unicharge/providers/stations_provider.dart';
+import 'package:unicharge/providers/booking_provider.dart';
 import 'package:unicharge/shared/widgets/rive_charging_widget.dart';
 
 class ChargingStatusCard extends ConsumerWidget {
@@ -32,27 +33,49 @@ class ChargingStatusCard extends ConsumerWidget {
     );
     
     return Card(
-      elevation: 4,
+      elevation: 0,
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: AppColors.primaryGradient,
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF475569), // More muted blue-gray
+              const Color(0xFF1E293B),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            width: 1,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(
-                  Icons.electric_bolt,
-                  color: Colors.white,
-                  size: 24,
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.electric_bolt,
+                    color: Colors.white,
+                    size: 24,
+                  ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Charging in Progress',
+                    booking.status == BookingStatus.reserved
+                        ? 'Booking Reserved'
+                        : booking.status == BookingStatus.active
+                            ? 'Charging in Progress'
+                            : 'Session Active',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -60,11 +83,10 @@ class ChargingStatusCard extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: AppColors.primary.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -78,96 +100,21 @@ class ChargingStatusCard extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             
-            // Charging animation
-            const Center(
-              child: RiveChargingWidget(
-                batteryLevel: 75, // TODO: Get actual battery level
-                isCharging: true,
-              ),
-            ),
-            const SizedBox(height: 16),
+            // Show different content based on booking status
+            if (booking.status == BookingStatus.reserved)
+              _buildReservedStatus(context, ref, booking)
+            else
+              _buildActiveStatus(context, slot, booking),
             
-            // Charging details
-            Row(
-              children: [
-                Expanded(
-                  child: _buildInfoItem(
-                    context,
-                    'Battery Level',
-                    '75%',
-                    Icons.battery_charging_full,
-                  ),
-                ),
-                Expanded(
-                  child: _buildInfoItem(
-                    context,
-                    'Time Remaining',
-                    '2h 15m',
-                    Icons.timer,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: _buildInfoItem(
-                    context,
-                    'Charging Speed',
-                    '50 kW',
-                    Icons.speed,
-                  ),
-                ),
-                Expanded(
-                  child: _buildInfoItem(
-                    context,
-                    'Session Cost',
-                    '₹${booking.totalPrice.toStringAsFixed(0)}',
-                    Icons.currency_rupee,
-                  ),
-                ),
-              ],
-            ),
             const SizedBox(height: 20),
             
             // Action buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      // TODO: Navigate to station
-                    },
-                    icon: const Icon(Icons.location_on, size: 18),
-                    label: const Text('Navigate', style: TextStyle(fontSize: 13)),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      // TODO: End session
-                    },
-                    icon: const Icon(Icons.stop, size: 18),
-                    label: const Text('End', style: TextStyle(fontSize: 13)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            if (booking.status == BookingStatus.reserved)
+              _buildReservedActions(context, ref, booking)
+            else
+              _buildActiveActions(context, ref, slot, booking),
           ],
         ),
       ),
@@ -210,6 +157,270 @@ class ChargingStatusCard extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildReservedStatus(BuildContext context, WidgetRef ref, BookingModel booking) {
+    return Column(
+      children: [
+        const Icon(
+          Icons.schedule,
+          size: 48,
+          color: Colors.white70,
+        ),
+        const SizedBox(height: 16),
+        _buildInfoItem(
+          context,
+          'Booking Time',
+          '${booking.durationHours} hours',
+          Icons.access_time,
+        ),
+        const SizedBox(height: 12),
+        _buildInfoItem(
+          context,
+          'End Time',
+          booking.endTime != null
+              ? '${booking.endTime!.hour.toString().padLeft(2, '0')}:${booking.endTime!.minute.toString().padLeft(2, '0')}'
+              : 'N/A',
+          Icons.event,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActiveStatus(BuildContext context, SlotModel? slot, BookingModel booking) {
+    return Column(
+      children: [
+        // Charging animation
+        const Center(
+          child: RiveChargingWidget(
+            batteryLevel: 75, // TODO: Get actual battery level
+            isCharging: true,
+          ),
+        ),
+        const SizedBox(height: 16),
+        
+        // Charging details
+        Row(
+          children: [
+            Expanded(
+              child: _buildInfoItem(
+                context,
+                'Battery Level',
+                '75%',
+                Icons.battery_charging_full,
+              ),
+            ),
+            Expanded(
+              child: _buildInfoItem(
+                context,
+                booking.endTime != null ? 'Time Remaining' : 'Duration',
+                booking.endTime != null
+                    ? '${booking.endTime!.difference(DateTime.now()).inMinutes}min'
+                    : '${booking.durationHours}h',
+                Icons.timer,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildInfoItem(
+                context,
+                'Charging Speed',
+                '50 kW',
+                Icons.speed,
+              ),
+            ),
+            Expanded(
+              child: _buildInfoItem(
+                context,
+                'Session Cost',
+                '₹${booking.totalPrice.toStringAsFixed(0)}',
+                Icons.currency_rupee,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReservedActions(BuildContext context, WidgetRef ref, BookingModel booking) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () {
+              // TODO: Navigate to station
+            },
+            icon: const Icon(Icons.location_on, size: 18),
+            label: const Text('Navigate', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Colors.white, width: 1.5),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: () => _cancelBooking(context, ref, booking),
+            icon: const Icon(Icons.cancel, size: 18),
+            label: const Text('Cancel', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActiveActions(BuildContext context, WidgetRef ref, SlotModel? slot, BookingModel booking) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () {
+              // TODO: Navigate to station
+            },
+            icon: const Icon(Icons.location_on, size: 18),
+            label: const Text('Navigate', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Colors.white, width: 1.5),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: () => _endBooking(context, ref, slot, booking),
+            icon: const Icon(Icons.stop, size: 18),
+            label: const Text('End', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _cancelBooking(BuildContext context, WidgetRef ref, BookingModel booking) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Booking?'),
+        content: const Text('Are you sure you want to cancel this booking?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('No'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await ref.read(bookingStateProvider.notifier).cancelBooking(booking.id);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Booking cancelled successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error cancelling booking: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Yes, Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _endBooking(BuildContext context, WidgetRef ref, SlotModel? slot, BookingModel booking) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('End Session?'),
+        content: const Text('Are you sure you want to end this session?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('No'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                final slotId = slot?.id ?? booking.slotId;
+                await ref.read(bookingStateProvider.notifier).completeBooking(
+                  bookingId: booking.id,
+                  slotId: slotId,
+                );
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Session ended successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error ending session: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+            ),
+            child: const Text('Yes, End'),
+          ),
+        ],
+      ),
     );
   }
 }

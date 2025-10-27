@@ -14,10 +14,12 @@ final userBookingsProvider = FutureProvider.family<List<BookingModel>, String>((
   return await databaseService.getUserBookings(userId);
 });
 
-// Active booking provider
+// Active booking provider (includes reserved and active bookings)
 final activeBookingProvider = FutureProvider.family<BookingModel?, String>((ref, userId) async {
   final bookings = await ref.watch(userBookingsProvider(userId).future);
-  return bookings.where((booking) => booking.status.name == 'active').firstOrNull;
+  return bookings.where((booking) => 
+    booking.status.name == 'active' || booking.status.name == 'reserved'
+  ).firstOrNull;
 });
 
 // Booking state provider
@@ -59,6 +61,58 @@ class BookingStateNotifier extends StateNotifier<AsyncValue<List<BookingModel>>>
               cancelledAt: DateTime.now(),
               cancellationReason: 'User cancelled',
             );
+          }
+          return booking;
+        }).toList();
+        state = AsyncValue.data(updatedBookings);
+      });
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
+
+  /// Activate a reserved booking (when QR code is scanned)
+  /// Sets booking status from reserved → active, slot from reserved → occupied
+  Future<void> activateBooking({
+    required String bookingId,
+    required String slotId,
+  }) async {
+    try {
+      await _databaseService.activateBooking(
+        bookingId: bookingId,
+        slotId: slotId,
+      );
+      // Update state optimistically
+      state.whenData((bookings) {
+        final updatedBookings = bookings.map((booking) {
+          if (booking.id == bookingId) {
+            return booking.copyWith(status: BookingStatus.active);
+          }
+          return booking;
+        }).toList();
+        state = AsyncValue.data(updatedBookings);
+      });
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
+
+  /// Complete an active booking
+  /// Sets booking status from active → completed, slot from occupied → available
+  Future<void> completeBooking({
+    required String bookingId,
+    required String slotId,
+  }) async {
+    try {
+      await _databaseService.completeBooking(
+        bookingId: bookingId,
+        slotId: slotId,
+      );
+      // Update state optimistically
+      state.whenData((bookings) {
+        final updatedBookings = bookings.map((booking) {
+          if (booking.id == bookingId) {
+            return booking.copyWith(status: BookingStatus.completed);
           }
           return booking;
         }).toList();

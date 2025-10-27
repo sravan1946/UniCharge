@@ -7,6 +7,7 @@ import 'package:unicharge/providers/stations_provider.dart';
 import 'package:unicharge/providers/auth_provider.dart';
 import 'package:unicharge/providers/booking_provider.dart';
 import 'package:unicharge/features/stations/widgets/slot_selector.dart';
+import 'package:unicharge/features/bookings/screens/booking_confirmation_screen.dart';
 
 class StationDetailsScreen extends ConsumerStatefulWidget {
   final StationModel station;
@@ -132,17 +133,13 @@ class _StationDetailsScreenState extends ConsumerState<StationDetailsScreen> {
   Widget _buildStationInfoCard() {
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,10 +179,32 @@ class _StationDetailsScreenState extends ConsumerState<StationDetailsScreen> {
             ],
           ),
           if (widget.station.batterySwap) ...[
-            const SizedBox(height: 8),
-            Chip(
-              avatar: const Icon(Icons.battery_saver, size: 18),
-              label: const Text('Battery Swap Available'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.battery_saver, size: 18, color: const Color(0xFF10B981)),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Battery Swap Available',
+                    style: TextStyle(
+                      color: Color(0xFF10B981),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
           const SizedBox(height: 12),
@@ -194,12 +213,22 @@ class _StationDetailsScreenState extends ConsumerState<StationDetailsScreen> {
             runSpacing: 8,
             children: [
               for (final amenity in widget.station.amenities)
-                Chip(
-                  label: Text(amenity),
-                  backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                  labelStyle: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontSize: 12,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Text(
+                    amenity,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
             ],
@@ -210,22 +239,28 @@ class _StationDetailsScreenState extends ConsumerState<StationDetailsScreen> {
   }
 
   Widget _buildTypeChip(StationType type) {
-    final colors = {
-      StationType.parking: Colors.blue,
-      StationType.charging: Colors.green,
-      StationType.hybrid: Colors.orange,
+    final colorMap = {
+      StationType.parking: const Color(0xFF3B82F6), // Blue
+      StationType.charging: const Color(0xFF10B981), // Emerald
+      StationType.hybrid: const Color(0xFFF59E0B), // Amber
     };
+
+    final color = colorMap[type] ?? Theme.of(context).colorScheme.primary;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: colors[type]?.withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: color.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Text(
         type.displayName,
         style: TextStyle(
-          color: colors[type],
+          color: color,
           fontWeight: FontWeight.w600,
           fontSize: 12,
         ),
@@ -288,13 +323,13 @@ class _StationDetailsScreenState extends ConsumerState<StationDetailsScreen> {
         final slot = slots.firstWhere((s) => s.id == _selectedSlotId);
         
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(12),
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Theme.of(context).colorScheme.primary,
-              width: 2,
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+              width: 1.5,
             ),
           ),
           child: Column(
@@ -302,12 +337,18 @@ class _StationDetailsScreenState extends ConsumerState<StationDetailsScreen> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.info_outline, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.info_outline, color: Theme.of(context).colorScheme.primary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
                   Text(
                     'Booking Summary',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -397,6 +438,7 @@ class _StationDetailsScreenState extends ConsumerState<StationDetailsScreen> {
 
     try {
       // Create booking via the booking provider
+      // This will automatically set slot status to 'reserved'
       await ref.read(createBookingNotifierProvider.notifier).createBooking(
         userId: user.uid,
         stationId: widget.station.id,
@@ -405,26 +447,32 @@ class _StationDetailsScreenState extends ConsumerState<StationDetailsScreen> {
         pricePerHour: widget.station.pricePerHour,
       );
 
-      // Update slot status to occupied
-      final slots = ref.read(slotsStateProvider(widget.station.id)).value ?? [];
-      final selectedSlot = slots.firstWhere((slot) => slot.id == _selectedSlotId);
-      
-      await ref.read(slotsStateProvider(widget.station.id).notifier).updateSlotStatus(
-        slotId: _selectedSlotId!,
-        status: 'occupied',
-        batteryStatus: selectedSlot.batteryStatus?.name,
-        reservedByUserId: user.uid,
-        reservedUntil: DateTime.now().add(Duration(hours: _selectedDuration)),
-      );
-
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Booking confirmed successfully!'),
-            backgroundColor: Colors.green,
-          ),
+        // Get the created booking to show QR code
+        final bookingState = ref.read(createBookingNotifierProvider);
+        bookingState.whenData((booking) {
+          if (booking != null && mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BookingConfirmationScreen(booking: booking),
+              ),
+            );
+          }
+        });
+        
+        // If no booking data, just show success and go back
+        bookingState.whenOrNull(
+          data: (booking) => null, // Already handled above
+          error: (error, stack) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error creating booking: $error'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          },
         );
-        Navigator.pop(context); // Go back to stations list
       }
     } catch (e) {
       if (mounted) {

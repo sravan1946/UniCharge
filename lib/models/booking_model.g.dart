@@ -25,6 +25,7 @@ _$BookingModelImpl _$$BookingModelImplFromJson(Map<String, dynamic> json) =>
           ? null
           : DateTime.parse(json['cancelledAt'] as String),
       cancellationReason: json['cancellationReason'] as String?,
+      qrToken: json['qrToken'] as String?,
     );
 
 Map<String, dynamic> _$$BookingModelImplToJson(_$BookingModelImpl instance) =>
@@ -42,11 +43,13 @@ Map<String, dynamic> _$$BookingModelImplToJson(_$BookingModelImpl instance) =>
       'createdAt': instance.createdAt.toIso8601String(),
       'cancelledAt': instance.cancelledAt?.toIso8601String(),
       'cancellationReason': instance.cancellationReason,
+      'qrToken': instance.qrToken,
     };
 
 const _$BookingStatusEnumMap = {
   BookingStatus.pending: 'pending',
   BookingStatus.active: 'active',
+  BookingStatus.reserved: 'reserved',
   BookingStatus.completed: 'completed',
   BookingStatus.cancelled: 'cancelled',
 };

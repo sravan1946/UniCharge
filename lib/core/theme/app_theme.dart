@@ -124,15 +124,17 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
+      scaffoldBackgroundColor: AppColors.backgroundDark,
       colorScheme: const ColorScheme.dark(
-        primary: AppColors.primaryLight,
-        secondary: AppColors.secondaryLight,
+        primary: AppColors.primary,
+        secondary: AppColors.secondary,
         surface: AppColors.surfaceDark,
         error: AppColors.error,
-        onPrimary: Colors.black,
-        onSecondary: Colors.black,
+        onPrimary: Colors.white,
+        onSecondary: Colors.white,
         onSurface: AppColors.textPrimaryDark,
         onError: Colors.white,
+        background: AppColors.backgroundDark,
       ),
       fontFamily: 'Inter',
       textTheme: const TextTheme(
@@ -205,17 +207,18 @@ class AppTheme {
         systemOverlayStyle: SystemUiOverlayStyle.light,
       ),
       cardTheme: CardThemeData(
-        elevation: 2,
+        elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
         ),
         color: AppColors.surfaceDark,
+        margin: const EdgeInsets.symmetric(vertical: 4),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryLight,
-          foregroundColor: Colors.black,
-          elevation: 2,
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

@@ -5,6 +5,7 @@ import '../models/station_model.dart';
 import '../models/slot_model.dart';
 import '../models/booking_model.dart';
 import '../models/user_profile_model.dart';
+import 'qr_token_service.dart';
 
 class FirestoreDatabaseService {
   final FirebaseFirestore _firestore = FirebaseConfig.firestore;
@@ -237,7 +238,14 @@ class FirestoreDatabaseService {
   }) async {
     try {
       final startTime = DateTime.now();
+      final endTime = startTime.add(Duration(hours: durationHours));
       final totalPrice = durationHours * pricePerHour;
+
+      // Generate a temporary ID for the token before creating the document
+      final tempId = _firestore.collection('temp').doc().id;
+      
+      // Generate QR token (will be updated with actual booking ID after creation)
+      final qrToken = '$tempId:${startTime.millisecondsSinceEpoch}:token';
 
       final docRef = await _firestore
           .collection(FirebaseConfig.bookingsCollection)
@@ -245,19 +253,28 @@ class FirestoreDatabaseService {
             'userId': userId,
             'stationId': stationId,
             'slotId': slotId,
-            'status': 'active',
+            'status': 'reserved',
             'startTime': Timestamp.fromDate(startTime),
+            'endTime': Timestamp.fromDate(endTime),
             'pricePerHour': pricePerHour,
             'durationHours': durationHours,
             'totalPrice': totalPrice,
+            'qrToken': qrToken, // Temporary token
             'createdAt': FieldValue.serverTimestamp(),
           });
 
-      // Update slot status to occupied
+      // Generate final secure QR token with actual booking ID
+      final finalQrToken = QrTokenService.generateSecureToken(docRef.id);
+      
+      // Update with final QR token
+      await docRef.update({'qrToken': finalQrToken});
+
+      // Update slot status to reserved
       await updateSlotStatus(
         slotId: slotId,
-        status: 'occupied',
+        status: 'reserved',
         reservedByUserId: userId,
+        reservedUntil: endTime,
       );
 
       return BookingModel.fromJson({
@@ -265,11 +282,13 @@ class FirestoreDatabaseService {
         'userId': userId,
         'stationId': stationId,
         'slotId': slotId,
-        'status': 'active',
+        'status': 'reserved',
         'startTime': startTime.toIso8601String(),
+        'endTime': endTime.toIso8601String(),
         'pricePerHour': pricePerHour,
         'durationHours': durationHours,
         'totalPrice': totalPrice,
+        'qrToken': finalQrToken,
         'createdAt': startTime.toIso8601String(),
       });
     } on FirebaseException catch (e) {
@@ -302,8 +321,42 @@ class FirestoreDatabaseService {
           'createdAt': (data['createdAt'] as Timestamp?)?.toDate().toIso8601String(),
           'cancelledAt': (data['cancelledAt'] as Timestamp?)?.toDate().toIso8601String(),
           'cancellationReason': data['cancellationReason'],
+          'qrToken': data['qrToken'],
         });
       }).toList();
+    } on FirebaseException catch (e) {
+      throw _handleDatabaseException(e);
+    }
+  }
+
+  Future<BookingModel?> getBookingById(String bookingId) async {
+    try {
+      final doc = await _firestore
+          .collection(FirebaseConfig.bookingsCollection)
+          .doc(bookingId)
+          .get();
+
+      if (!doc.exists) {
+        return null;
+      }
+
+      final data = doc.data()!;
+      return BookingModel.fromJson({
+        'id': doc.id,
+        'userId': data['userId'],
+        'stationId': data['stationId'],
+        'slotId': data['slotId'],
+        'status': data['status'],
+        'startTime': (data['startTime'] as Timestamp?)?.toDate().toIso8601String(),
+        'endTime': (data['endTime'] as Timestamp?)?.toDate().toIso8601String(),
+        'pricePerHour': data['pricePerHour'],
+        'durationHours': data['durationHours'],
+        'totalPrice': data['totalPrice'],
+        'createdAt': (data['createdAt'] as Timestamp?)?.toDate().toIso8601String(),
+        'cancelledAt': (data['cancelledAt'] as Timestamp?)?.toDate().toIso8601String(),
+        'cancellationReason': data['cancellationReason'],
+        'qrToken': data['qrToken'],
+      });
     } on FirebaseException catch (e) {
       throw _handleDatabaseException(e);
     }
@@ -319,6 +372,59 @@ class FirestoreDatabaseService {
             'cancelledAt': FieldValue.serverTimestamp(),
             'cancellationReason': 'User cancelled',
           });
+    } on FirebaseException catch (e) {
+      throw _handleDatabaseException(e);
+    }
+  }
+
+  /// Mark a reserved booking as occupied (when QR code is scanned)
+  /// This transitions the booking from reserved → active and slot from reserved → occupied
+  Future<void> activateBooking({
+    required String bookingId,
+    required String slotId,
+  }) async {
+    try {
+      // Update booking status to active
+      await _firestore
+          .collection(FirebaseConfig.bookingsCollection)
+          .doc(bookingId)
+          .update({
+            'status': 'active',
+          });
+
+      // Update slot status to occupied
+      await updateSlotStatus(
+        slotId: slotId,
+        status: 'occupied',
+      );
+    } on FirebaseException catch (e) {
+      throw _handleDatabaseException(e);
+    }
+  }
+
+  /// Complete a booking and free up the slot
+  /// This transitions the booking from active → completed and slot from occupied → available
+  Future<void> completeBooking({
+    required String bookingId,
+    required String slotId,
+  }) async {
+    try {
+      // Update booking status to completed
+      await _firestore
+          .collection(FirebaseConfig.bookingsCollection)
+          .doc(bookingId)
+          .update({
+            'status': 'completed',
+          });
+
+      // Update slot status to available
+      await updateSlotStatus(
+        slotId: slotId,
+        status: 'available',
+        batteryStatus: null,
+        reservedByUserId: null,
+        reservedUntil: null,
+      );
     } on FirebaseException catch (e) {
       throw _handleDatabaseException(e);
     }

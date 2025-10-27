@@ -4,9 +4,10 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:unicharge/providers/location_provider.dart';
 import 'package:unicharge/providers/stations_provider.dart';
-import 'package:unicharge/models/enums.dart';
 import 'package:unicharge/models/station_model.dart';
+import 'package:unicharge/models/enums.dart';
 import 'package:unicharge/features/map/widgets/station_preview_sheet.dart';
+import 'package:unicharge/features/stations/screens/station_details_screen.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -19,10 +20,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   GoogleMapController? _mapController;
   final Set<Marker> _markers = {};
   StationModel? _selectedStation;
+  List<StationModel> _lastStations = [];
 
   @override
   Widget build(BuildContext context) {
     final locationState = ref.watch(locationStateProvider);
+    final stationsState = ref.watch(stationsStateProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -55,23 +58,67 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 );
               }
 
-              return GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: LatLng(position.latitude, position.longitude),
-                  zoom: 15,
+              // Update markers when stations load
+              return stationsState.when(
+                data: (stations) {
+                  // Update markers if stations changed (check by IDs)
+                  final currentIds = stations.map((s) => s.id).toSet();
+                  final lastIds = _lastStations.map((s) => s.id).toSet();
+                  if (!currentIds.containsAll(lastIds) || currentIds.length != lastIds.length) {
+                    _lastStations = stations;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _updateMarkers(stations, position);
+                    });
+                  }
+                  
+                  return GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: LatLng(position.latitude, position.longitude),
+                      zoom: 13,
+                    ),
+                    onMapCreated: (GoogleMapController controller) {
+                      _mapController = controller;
+                      _loadStations(position);
+                    },
+                    markers: _markers,
+                    myLocationEnabled: true,
+                    myLocationButtonEnabled: false,
+                    onTap: (LatLng position) {
+                      setState(() {
+                        _selectedStation = null;
+                      });
+                    },
+                  );
+                },
+                loading: () => GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: LatLng(position.latitude, position.longitude),
+                    zoom: 13,
+                  ),
+                  onMapCreated: (GoogleMapController controller) {
+                    _mapController = controller;
+                    _loadStations(position);
+                  },
+                  markers: _markers,
+                  myLocationEnabled: true,
+                  myLocationButtonEnabled: false,
                 ),
-                onMapCreated: (GoogleMapController controller) {
-                  _mapController = controller;
-                  _loadStations(position);
-                },
-                markers: _markers,
-                myLocationEnabled: true,
-                myLocationButtonEnabled: false,
-                onTap: (LatLng position) {
-                  setState(() {
-                    _selectedStation = null;
-                  });
-                },
+                error: (error, stack) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 64),
+                      const SizedBox(height: 16),
+                      Text('Error loading stations: $error'),
+                      ElevatedButton(
+                        onPressed: () {
+                          ref.invalidate(stationsStateProvider);
+                        },
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -93,12 +140,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
           ),
 
-          // Search bar
+          // Legend
           Positioned(
             top: 16,
             left: 16,
-            right: 16,
             child: Container(
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
@@ -110,39 +157,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   ),
                 ],
               ),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search stations...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-                onChanged: (value) {
-                  // TODO: Implement search
-                },
-              ),
-            ),
-          ),
-
-          // Filter chips
-          Positioned(
-            top: 80,
-            left: 16,
-            right: 16,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildFilterChip('All', true),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Charging', false),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Parking', false),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Battery Swap', false),
+                  Text(
+                    'Legend',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildLegendItem('Free', Colors.yellow),
+                  _buildLegendItem('Charging', Colors.green),
+                  _buildLegendItem('Parking', Colors.orange),
+                  _buildLegendItem('Hybrid', Colors.deepPurple),
                 ],
               ),
             ),
@@ -154,44 +183,43 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               bottom: 0,
               left: 0,
               right: 0,
-              child: StationPreviewSheet(
-                station: _selectedStation!,
-                onViewDetails: () {
-                  // TODO: Navigate to station details
-                },
-                onClose: () {
-                  setState(() {
-                    _selectedStation = null;
-                  });
-                },
-              ),
+              child: _buildStationPreviewSheet(_selectedStation!),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, bool isSelected) {
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        // TODO: Implement filter
+  Widget _buildStationPreviewSheet(StationModel station) {
+    return StationPreviewSheet(
+      station: station,
+      onViewDetails: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => StationDetailsScreen(station: station),
+          ),
+        ).then((_) {
+          setState(() {
+            _selectedStation = null;
+          });
+        });
       },
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-      checkmarkColor: Theme.of(context).colorScheme.primary,
+      onClose: () {
+        setState(() {
+          _selectedStation = null;
+        });
+      },
     );
   }
 
   void _loadStations(Position position) {
-    ref.read(stationsStateProvider.notifier).loadNearbyStations(position);
-    
-    ref.listen(stationsStateProvider, (previous, next) {
-      next.whenData((stations) {
-        _updateMarkers(stations, position);
-      });
-    });
+    // Load stations with showAll=true to get all stations
+    ref.read(stationsStateProvider.notifier).loadNearbyStations(
+      position,
+      radiusKm: 50.0,
+      showAll: true, // Show all stations on map
+    );
   }
 
   void _updateMarkers(List<StationModel> stations, Position userPosition) {
@@ -208,18 +236,33 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ),
       );
 
-      // Add station markers
+      // Add station markers with enhanced information
       for (final station in stations) {
+        BitmapDescriptor icon;
+        // Choose color based on station type and price
+        if (station.pricePerHour == 0) {
+          icon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow); // Free
+        } else if (station.type == StationType.parking) {
+          icon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange); // Parking
+        } else if (station.type == StationType.charging) {
+          icon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen); // Charging
+        } else {
+          icon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet); // Hybrid
+        }
+        
+        // Build rich snippet with more information
+        String typeLabel = _getStationTypeLabel(station.type);
+        String batterySwapLabel = station.batterySwap ? ' ✓ Swap' : '';
+        String priceLabel = station.pricePerHour == 0 ? 'FREE' : '₹${station.pricePerHour.toInt()}/hr';
+        
         _markers.add(
           Marker(
             markerId: MarkerId(station.id),
             position: LatLng(station.latitude, station.longitude),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-              station.type == StationType.charging ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueOrange,
-            ),
+            icon: icon,
             infoWindow: InfoWindow(
               title: station.name,
-              snippet: '${station.availableSlots}/${station.totalSlots} slots available',
+              snippet: '$typeLabel • ${station.availableSlots}/${station.totalSlots} slots • $priceLabel$batterySwapLabel',
             ),
             onTap: () {
               setState(() {
@@ -243,5 +286,41 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         );
       }
     });
+  }
+
+  String _getStationTypeLabel(StationType type) {
+    switch (type) {
+      case StationType.charging:
+        return '🔌 Charging';
+      case StationType.parking:
+        return '🚗 Parking';
+      case StationType.hybrid:
+        return '⚡ Hybrid';
+    }
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.black54, width: 1),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
   }
 }

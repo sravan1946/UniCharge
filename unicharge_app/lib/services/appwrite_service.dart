@@ -13,7 +13,8 @@ class AppwriteService {
   AppwriteService() {
     _client = Client()
       ..setEndpoint(AppwriteConfig.endpoint)
-      ..setProject(AppwriteConfig.projectId);
+      ..setProject(AppwriteConfig.projectId)
+      ..setSelfSigned(status: false); // Allow cookies to be stored properly
     
     _databases = Databases(_client);
     _account = Account(_client);

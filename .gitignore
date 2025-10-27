@@ -1,0 +1,439 @@
+# UniCharge Project .gitignore
+
+# Environment Variables and Secrets
+.env
+.env.*
+!.env.example
+*.env
+secrets/
+config/secrets/
+
+# Flutter/Dart
+unicharge_app/.dart_tool/
+unicharge_app/.packages
+unicharge_app/.pub-cache/
+unicharge_app/.pub/
+unicharge_app/build/
+unicharge_app/.flutter-plugins
+unicharge_app/.flutter-plugins-dependencies
+unicharge_app/.metadata
+unicharge_app/.idea/
+unicharge_app/.vscode/
+unicharge_app/*.iml
+unicharge_app/local.properties
+unicharge_app/.gradle/
+unicharge_app/captures/
+unicharge_app/.externalNativeBuild/
+unicharge_app/.cxx/
+unicharge_app/key.properties
+unicharge_app/android/app/debug.keystore
+unicharge_app/android/app/profile.keystore
+unicharge_app/android/app/release.keystore
+
+# Android
+unicharge_app/android/.gradle/
+unicharge_app/android/captures/
+unicharge_app/android/gradlew
+unicharge_app/android/gradlew.bat
+unicharge_app/android/local.properties
+unicharge_app/android/**/GeneratedPluginRegistrant.java
+unicharge_app/android/key.properties
+unicharge_app/android/app/google-services.json
+
+# iOS
+unicharge_app/ios/**/*.mode1v3
+unicharge_app/ios/**/*.mode2v3
+unicharge_app/ios/**/*.moved-aside
+unicharge_app/ios/**/*.pbxuser
+unicharge_app/ios/**/*.perspectivev3
+unicharge_app/ios/**/*sync/
+unicharge_app/ios/**/.sconsign.dblite
+unicharge_app/ios/**/.tags*
+unicharge_app/ios/**/.vagrant/
+unicharge_app/ios/**/DerivedData/
+unicharge_app/ios/**/Icon?
+unicharge_app/ios/**/Pods/
+unicharge_app/ios/**/.symlinks/
+unicharge_app/ios/**/profile
+unicharge_app/ios/**/xcuserdata
+unicharge_app/ios/.generated/
+unicharge_app/ios/Flutter/App.framework
+unicharge_app/ios/Flutter/Flutter.framework
+unicharge_app/ios/Flutter/Flutter.podspec
+unicharge_app/ios/Flutter/Generated.xcconfig
+unicharge_app/ios/Flutter/ephemeral/
+unicharge_app/ios/Flutter/app.flx
+unicharge_app/ios/Flutter/app.zip
+unicharge_app/ios/Flutter/flutter_assets/
+unicharge_app/ios/Flutter/flutter_export_environment.sh
+unicharge_app/ios/ServiceDefinitions.json
+unicharge_app/ios/Runner/GeneratedPluginRegistrant.*
+
+# Web
+unicharge_app/web/
+
+# Windows
+unicharge_app/windows/flutter/generated_plugin_registrant.cc
+unicharge_app/windows/flutter/generated_plugin_registrant.h
+unicharge_app/windows/flutter/generated_plugins.cmake
+
+# Linux
+unicharge_app/linux/flutter/generated_plugin_registrant.cc
+unicharge_app/linux/flutter/generated_plugin_registrant.h
+unicharge_app/linux/flutter/generated_plugins.cmake
+
+# macOS
+unicharge_app/macos/Flutter/GeneratedPluginRegistrant.swift
+unicharge_app/macos/Flutter/ephemeral/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+.env/
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Appwrite
+appwrite.json
+appwrite/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage
+.grunt
+
+# Bower dependency directory
+bower_components
+
+# node_modules
+node_modules/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.test
+.env.production
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# parcel-bundler cache
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+*.rej
+*.swp
+*.tmp
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Documentation build
+docs/_build/
+site/
+
+# Test coverage
+coverage/
+.coverage
+htmlcov/
+
+# IDE specific files
+*.sublime-project
+*.sublime-workspace
+.vscode/
+.idea/
+
+# App specific
+demo_data/
+simulation_logs/
+*.apk
+*.ipa
+*.aab
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Local configuration overrides
+local_config.dart
+local_config.py
+config.local.*
+
+# API keys and secrets (extra protection)
+**/api_keys.txt
+**/secrets.txt
+**/credentials.json
+**/service-account.json
+**/firebase-adminsdk-*.json
+
+# Generated files
+generated/
+*.g.dart
+*.freezed.dart
+*.gr.dart
+
+# Build artifacts
+build/
+dist/
+out/
+target/
+
+# Package manager files
+package-lock.json
+yarn.lock
+Pipfile.lock
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Project specific ignores
+# Add any project-specific files or directories to ignore here

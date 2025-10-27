@@ -34,7 +34,7 @@ class DashboardScreen extends ConsumerWidget {
             );
           }
 
-          final activeBooking = ref.watch(activeBookingProvider(user.$id));
+          final activeBooking = ref.watch(activeBookingProvider(user.uid));
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -47,7 +47,7 @@ class DashboardScreen extends ConsumerWidget {
                 children: [
                   // Welcome message
                   Text(
-                    'Welcome back, ${user.name}!',
+                    'Welcome back, ${user.displayName ?? 'User'}!',
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                   const SizedBox(height: 8),

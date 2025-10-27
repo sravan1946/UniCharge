@@ -16,7 +16,9 @@ dependencies:
   riverpod_annotation: ^2.6.1
   
   # Backend & Database
-  appwrite: ^20.2.1
+  firebase_core: ^3.9.0
+  firebase_auth: ^5.3.3
+  cloud_firestore: ^5.6.1
   
   # Maps & Location
   google_maps_flutter: ^2.9.0

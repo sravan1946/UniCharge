@@ -1,23 +1,37 @@
 import 'dart:io';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class EnvConfig {
+  // Helper method to safely get value from dotenv or platform environment
+  static String? _getDotenvValue(String key) {
+    try {
+      return dotenv.env[key];
+    } catch (e) {
+      return null;
+    }
+  }
+
   static String get appwriteEndpoint {
-    return Platform.environment['APPWRITE_ENDPOINT'] ?? 
+    return _getDotenvValue('APPWRITE_ENDPOINT') ?? 
+           Platform.environment['APPWRITE_ENDPOINT'] ??
            'https://cloud.appwrite.io/v1';
   }
 
   static String get appwriteProjectId {
-    return Platform.environment['APPWRITE_PROJECT_ID'] ?? 
+    return _getDotenvValue('APPWRITE_PROJECT_ID') ?? 
+           Platform.environment['APPWRITE_PROJECT_ID'] ??
            'YOUR_PROJECT_ID';
   }
 
   static String get appwriteDatabaseId {
-    return Platform.environment['APPWRITE_DATABASE_ID'] ?? 
+    return _getDotenvValue('APPWRITE_DATABASE_ID') ?? 
+           Platform.environment['APPWRITE_DATABASE_ID'] ??
            'parkcharge_db';
   }
 
   static String get appwriteApiKey {
-    return Platform.environment['APPWRITE_API_KEY'] ?? 
+    return _getDotenvValue('APPWRITE_API_KEY') ?? 
+           Platform.environment['APPWRITE_API_KEY'] ??
            'YOUR_API_KEY';
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/app_bloc.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_state.dart';
+import '../services/appwrite_service.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -16,6 +17,9 @@ class _AuthScreenState extends State<AuthScreen> {
   final _nameController = TextEditingController();
   bool _isSignUp = false;
   bool _obscurePassword = true;
+  bool _isLoading = false;
+
+  final _appwriteService = AppwriteService();
 
   @override
   void dispose() {
@@ -29,22 +33,24 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 48),
-                _buildForm(),
-                const SizedBox(height: 24),
-                _buildSubmitButton(),
-                const SizedBox(height: 16),
-                _buildToggleAuth(),
-              ],
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 48),
+                  _buildForm(),
+                  const SizedBox(height: 24),
+                  _buildSubmitButton(),
+                  const SizedBox(height: 16),
+                  _buildToggleAuth(),
+                ],
+              ),
             ),
           ),
         ),
@@ -159,34 +165,21 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget _buildSubmitButton() {
-    return BlocConsumer<AppBloc, AppState>(
-      listener: (context, state) {
-        if (state is AppError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
-        }
-      },
-      builder: (context, state) {
-        final isLoading = state is AppLoading;
-        
-        return ElevatedButton(
-          onPressed: isLoading ? null : _submitForm,
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: isLoading
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(_isSignUp ? 'Sign Up' : 'Sign In'),
-        );
-      },
+    return ElevatedButton(
+      onPressed: _isLoading ? null : _submitForm,
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      child: _isLoading
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Text(_isSignUp ? 'Sign Up' : 'Sign In'),
     );
   }
 
@@ -205,23 +198,39 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final authState = context.read<AuthState>();
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+
       if (_isSignUp) {
-        context.read<AppBloc>().add(
-          SignUp(
-            _emailController.text.trim(),
-            _passwordController.text,
-            _nameController.text.trim(),
-          ),
-        );
+        final name = _nameController.text.trim();
+        final user = await _appwriteService.signUp(email, password, name);
+        authState.setUser(user);
       } else {
-        context.read<AppBloc>().add(
-          SignIn(
-            _emailController.text.trim(),
-            _passwordController.text,
-          ),
+        final user = await _appwriteService.signIn(email, password);
+        authState.setUser(user);
+      }
+
+      // Navigation happens automatically via AppWrapper watching authState
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }

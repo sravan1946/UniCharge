@@ -8,7 +8,6 @@ import '../models/user.dart' as app_user;
 class AppwriteService {
   late Client _client;
   late Databases _databases;
-  late Realtime _realtime;
   late Account _account;
 
   AppwriteService() {
@@ -17,7 +16,6 @@ class AppwriteService {
       ..setProject(AppwriteConfig.projectId);
     
     _databases = Databases(_client);
-    _realtime = Realtime(_client);
     _account = Account(_client);
   }
 
@@ -47,7 +45,7 @@ class AppwriteService {
 
   Future<app_user.User> signIn(String email, String password) async {
     try {
-      final session = await _account.createEmailPasswordSession(
+      await _account.createEmailPasswordSession(
         email: email,
         password: password,
       );

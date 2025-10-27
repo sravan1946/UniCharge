@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/app_bloc.dart';
+import '../services/appwrite_service.dart';
 import '../models/station.dart';
 import '../models/slot.dart';
 import '../models/booking.dart';
@@ -14,11 +13,39 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int _selectedIndex = 0;
+  
+  List<Station> _stations = [];
+  List<Slot> _slots = [];
+  List<Booking> _bookings = [];
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  final _appwriteService = AppwriteService();
 
   @override
   void initState() {
     super.initState();
-    context.read<AppBloc>().add(LoadStations());
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final stations = await _appwriteService.getStations();
+      setState(() {
+        _stations = stations;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -29,42 +56,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () {
-              context.read<AppBloc>().add(LoadStations());
-            },
+            onPressed: _loadData,
           ),
         ],
       ),
-      body: BlocBuilder<AppBloc, AppState>(
-        builder: (context, state) {
-          if (state is AppLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (state is AppError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(state.message),
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<AppBloc>().add(LoadStations());
-                    },
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          if (state is AppLoaded) {
-            return _buildDashboard(state);
-          }
-
-          return const Center(child: CircularProgressIndicator());
-        },
-      ),
+      body: _buildBody(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
@@ -90,25 +86,44 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _buildDashboard(AppLoaded state) {
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(_errorMessage!),
+            ElevatedButton(
+              onPressed: _loadData,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
     switch (_selectedIndex) {
       case 0:
-        return _buildOverview(state);
+        return _buildOverview();
       case 1:
-        return _buildStationsList(state.stations);
+        return _buildStationsList(_stations);
       case 2:
-        return _buildBookingsList(state.userBookings);
+        return _buildBookingsList(_bookings);
       default:
-        return _buildOverview(state);
+        return _buildOverview();
     }
   }
 
-  Widget _buildOverview(AppLoaded state) {
-    final totalStations = state.stations.length;
-    final totalSlots = state.slots.length;
-    final availableSlots = state.slots.where((slot) => slot.isAvailable).length;
-    final occupiedSlots = state.slots.where((slot) => slot.isOccupied).length;
-    final reservedSlots = state.slots.where((slot) => slot.isReserved).length;
+  Widget _buildOverview() {
+    final totalStations = _stations.length;
+    final totalSlots = _slots.length;
+    final availableSlots = _slots.where((slot) => slot.isAvailable).length;
+    final occupiedSlots = _slots.where((slot) => slot.isOccupied).length;
+    final reservedSlots = _slots.where((slot) => slot.isReserved).length;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -128,7 +143,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             reservedSlots,
           ),
           const SizedBox(height: 24),
-          _buildRecentActivity(state),
+          _buildRecentActivity(),
         ],
       ),
     );
@@ -185,7 +200,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _buildRecentActivity(AppLoaded state) {
+  Widget _buildRecentActivity() {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -197,10 +212,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            if (state.userBookings.isEmpty)
+            if (_bookings.isEmpty)
               const Text('No recent bookings')
             else
-              ...state.userBookings.take(5).map((booking) => _buildActivityItem(booking)),
+              ..._bookings.take(5).map((booking) => _buildActivityItem(booking)),
           ],
         ),
       ),

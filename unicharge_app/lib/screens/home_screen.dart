@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import '../bloc/app_bloc.dart';
+import '../services/appwrite_service.dart';
+import '../services/location_service.dart';
 import '../models/station.dart';
 import '../widgets/station_card.dart';
 import 'station_details_screen.dart';
@@ -20,12 +20,68 @@ class _HomeScreenState extends State<HomeScreen> {
   GoogleMapController? _mapController;
   Set<Marker> _markers = {};
   bool _showList = false;
+  
+  List<Station> _stations = [];
+  bool _isLoading = false;
+  String? _errorMessage;
+  Position? _currentLocation;
+  
+  final _appwriteService = AppwriteService();
+  final _locationService = LocationService();
 
   @override
   void initState() {
     super.initState();
-    context.read<AppBloc>().add(LoadStations());
-    context.read<AppBloc>().add(RequestLocationPermission());
+    _loadStations();
+    _requestLocationPermission();
+  }
+
+  Future<void> _loadStations() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final stations = await _appwriteService.getStations();
+      setState(() {
+        _stations = stations;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _requestLocationPermission() async {
+    await _locationService.requestLocationPermission();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    try {
+      final position = await _locationService.getCurrentPosition();
+      setState(() {
+        _currentLocation = position;
+      });
+      
+      if (_mapController != null && position != null) {
+        await _mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(
+            LatLng(position.latitude, position.longitude),
+            15.0,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to get location: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -73,59 +129,44 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: BlocConsumer<AppBloc, AppState>(
-        listener: (context, state) {
-          if (state is AppError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
-          }
-        },
-        builder: (context, state) {
-          if (state is AppLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (state is AppError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(state.message),
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<AppBloc>().add(LoadStations());
-                    },
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          if (state is AppLoaded) {
-            _updateMarkers(state.stations);
-            
-            if (_showList) {
-              return _buildStationList(state.stations);
-            } else {
-              return _buildMap(state);
-            }
-          }
-
-          return const Center(child: CircularProgressIndicator());
-        },
-      ),
+      body: _buildBody(),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          context.read<AppBloc>().add(GetCurrentLocation());
-        },
+        onPressed: _getCurrentLocation,
         child: const Icon(Icons.my_location),
       ),
     );
   }
 
-  Widget _buildMap(AppLoaded state) {
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(_errorMessage!),
+            ElevatedButton(
+              onPressed: _loadStations,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    _updateMarkers(_stations);
+
+    if (_showList) {
+      return _buildStationList(_stations);
+    } else {
+      return _buildMap();
+    }
+  }
+
+  Widget _buildMap() {
     return Stack(
       children: [
         GoogleMap(
@@ -133,8 +174,8 @@ class _HomeScreenState extends State<HomeScreen> {
             _mapController = controller;
           },
           initialCameraPosition: CameraPosition(
-            target: state.currentLocation != null
-                ? LatLng(state.currentLocation!.latitude, state.currentLocation!.longitude)
+            target: _currentLocation != null
+                ? LatLng(_currentLocation!.latitude, _currentLocation!.longitude)
                 : const LatLng(12.9716, 77.5946), // Default to Bangalore
             zoom: 15.0,
           ),

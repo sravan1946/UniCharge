@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unicharge/core/constants/app_colors.dart';
 import 'package:unicharge/models/booking_model.dart';
+import 'package:unicharge/models/slot_model.dart';
+import 'package:unicharge/models/enums.dart';
+import 'package:unicharge/providers/stations_provider.dart';
 import 'package:unicharge/shared/widgets/rive_charging_widget.dart';
 
 class ChargingStatusCard extends ConsumerWidget {
@@ -14,6 +17,20 @@ class ChargingStatusCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Get slot information
+    final slotState = ref.watch(slotsStateProvider(booking.stationId));
+    final slot = slotState.value?.firstWhere(
+      (s) => s.id == booking.slotId,
+      orElse: () => SlotModel(
+        id: booking.slotId,
+        stationId: booking.stationId,
+        slotIndex: 0,
+        type: SlotType.parkingSpace,
+        status: SlotStatus.available,
+        lastUpdated: DateTime.now(),
+      ),
+    );
+    
     return Card(
       elevation: 4,
       child: Container(
@@ -33,14 +50,17 @@ class ChargingStatusCard extends ConsumerWidget {
                   size: 24,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  'Charging in Progress',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    'Charging in Progress',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
@@ -48,7 +68,7 @@ class ChargingStatusCard extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Slot ${booking.slotId}',
+                    'Slot ${slot?.slotIndex ?? 0}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -122,11 +142,12 @@ class ChargingStatusCard extends ConsumerWidget {
                     onPressed: () {
                       // TODO: Navigate to station
                     },
-                    icon: const Icon(Icons.location_on),
-                    label: const Text('Navigate'),
+                    icon: const Icon(Icons.location_on, size: 18),
+                    label: const Text('Navigate', style: TextStyle(fontSize: 13)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
                       side: const BorderSide(color: Colors.white),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),
@@ -136,11 +157,12 @@ class ChargingStatusCard extends ConsumerWidget {
                     onPressed: () {
                       // TODO: End session
                     },
-                    icon: const Icon(Icons.stop),
-                    label: const Text('End Session'),
+                    icon: const Icon(Icons.stop, size: 18),
+                    label: const Text('End', style: TextStyle(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),

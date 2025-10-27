@@ -6,6 +6,7 @@ import 'package:unicharge/providers/stations_provider.dart';
 import 'package:unicharge/models/enums.dart';
 import 'package:unicharge/models/station_model.dart';
 import 'package:unicharge/features/stations/widgets/station_list_item.dart';
+import 'package:unicharge/features/stations/screens/station_details_screen.dart';
 
 class StationsListScreen extends ConsumerStatefulWidget {
   const StationsListScreen({super.key});
@@ -195,7 +196,12 @@ class _StationsListScreenState extends ConsumerState<StationsListScreen> {
                             child: StationListItem(
                               station: station,
                               onTap: () {
-                                // TODO: Navigate to station details
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => StationDetailsScreen(station: station),
+                                  ),
+                                );
                               },
                             ),
                           );

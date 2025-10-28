@@ -1,5 +1,5 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:rive/rive.dart';
 import '../../../core/constants/app_colors.dart';
 
 class RiveChargingWidget extends StatefulWidget {
@@ -18,152 +18,289 @@ class RiveChargingWidget extends StatefulWidget {
   State<RiveChargingWidget> createState() => _RiveChargingWidgetState();
 }
 
-class _RiveChargingWidgetState extends State<RiveChargingWidget> {
-  Artboard? _artboard;
-  StateMachineController? _controller;
-  SMIInput<double>? _batteryLevelInput;
-  SMIBool? _isChargingInput;
-  SMIBool? _isSwappingInput;
+class _RiveChargingWidgetState extends State<RiveChargingWidget>
+    with TickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late AnimationController _spinController;
+  late AnimationController _bounceController;
+  
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _spinAnimation;
+  late Animation<double> _bounceAnimation;
 
   @override
   void initState() {
     super.initState();
-    _loadRiveFile();
+    _setupAnimations();
   }
 
-  void _loadRiveFile() {
-    // For now, we'll create a simple animated widget
-    // In a real implementation, you'd load a .riv file
-    // rootBundle.load('assets/animations/charging_animation.riv').then(
-    //   (data) async {
-    //     final file = RiveFile.import(data);
-    //     final artboard = file.mainArtboard;
-    //     final controller = StateMachineController.fromArtboard(artboard, 'StateMachine');
-    //     if (controller != null) {
-    //       artboard.addController(controller);
-    //       _batteryLevelInput = controller.findInput<double>('batteryLevel');
-    //       _isChargingInput = controller.findInput<bool>('isCharging');
-    //       _isSwappingInput = controller.findInput<bool>('isSwapping');
-    //     }
-    //     setState(() {
-    //       _artboard = artboard;
-    //       _controller = controller;
-    //     });
-    //   },
-    // );
+  void _setupAnimations() {
+    // Pulse animation for the outer circle
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat();
+
+    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.5).animate(
+      CurvedAnimation(
+        parent: _pulseController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // Spin animation for rotating effects
+    _spinController = AnimationController(
+      duration: const Duration(milliseconds: 3000),
+      vsync: this,
+    );
+    
+    if (widget.isCharging) {
+      _spinController.repeat();
+    }
+
+    _spinAnimation = Tween<double>(begin: 0, end: 1).animate(_spinController);
+
+    // Bounce animation for the lightning icon
+    _bounceController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _bounceAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(
+        parent: _bounceController,
+        curve: Curves.easeInOut,
+      ),
+    );
   }
 
   @override
   void didUpdateWidget(RiveChargingWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.batteryLevel != widget.batteryLevel) {
-      _batteryLevelInput?.value = widget.batteryLevel.toDouble();
-    }
-    if (oldWidget.isCharging != widget.isCharging) {
-      _isChargingInput?.value = widget.isCharging;
-    }
-    if (oldWidget.isSwapping != widget.isSwapping) {
-      _isSwappingInput?.value = widget.isSwapping;
+    if (widget.isCharging) {
+      _spinController.repeat();
+    } else {
+      _spinController.stop();
     }
   }
 
   @override
   void dispose() {
-    _controller?.dispose();
+    _pulseController.dispose();
+    _spinController.dispose();
+    _bounceController.dispose();
     super.dispose();
+  }
+
+  Color _getBatteryColor(int level) {
+    if (level < 20) return AppColors.batteryEmpty;
+    if (level < 50) return AppColors.batteryLow;
+    if (level < 80) return AppColors.batteryMedium;
+    return AppColors.batteryFull;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_artboard != null) {
-      return SizedBox(
-        width: 200,
-        height: 200,
-        child: Rive(
-          artboard: _artboard!,
-          fit: BoxFit.contain,
-        ),
-      );
-    }
-
-    // Fallback widget when Rive file is not loaded
-    return _buildFallbackWidget();
-  }
-
-  Widget _buildFallbackWidget() {
-    return Container(
+    final batteryColor = _getBatteryColor(widget.batteryLevel);
+    
+    return SizedBox(
       width: 200,
       height: 200,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: AppColors.chargingGradient,
-      ),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Battery icon
-          Icon(
-            Icons.battery_charging_full,
-            size: 80,
-            color: Colors.white,
+          // Outer pulsing circle
+          AnimatedBuilder(
+            animation: _pulseAnimation,
+            builder: (context, child) {
+              return CustomPaint(
+                painter: PulsingCirclePainter(
+                  color: batteryColor.withValues(alpha: 0.2),
+                  scale: _pulseAnimation.value,
+                ),
+              );
+            },
           ),
           
-          // Battery level text
-          Positioned(
-            bottom: 40,
-            child: Text(
-              '${widget.batteryLevel}%',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+          // Main battery indicator
+          CustomPaint(
+            painter: ChargingPainter(
+              batteryLevel: widget.batteryLevel,
+              isCharging: widget.isCharging,
+              batteryColor: batteryColor,
+              spinProgress: _spinAnimation.value,
             ),
           ),
           
-          // Charging indicator
+          // Animated lightning icon
           if (widget.isCharging)
-            Positioned(
-              top: 20,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: const AnimatedOpacity(
-                  opacity: 0.5,
-                  duration: Duration(milliseconds: 1000),
-                  child: Icon(
-                    Icons.electric_bolt,
-                    size: 4,
+            AnimatedBuilder(
+              animation: _bounceAnimation,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: _bounceAnimation.value,
+                  child: const Icon(
+                    Icons.bolt,
                     color: Colors.white,
+                    size: 40,
                   ),
-                ),
-              ),
-            ),
-          
-          // Swapping indicator
-          if (widget.isSwapping)
-            Positioned(
-              top: 20,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Icon(
-                  Icons.swap_horiz,
-                  size: 16,
-                  color: Colors.white,
-                ),
+                );
+              },
+            )
+          else
+            // Percentage text when not charging
+            Text(
+              '${widget.batteryLevel}%',
+              style: TextStyle(
+                color: batteryColor,
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    color: batteryColor.withValues(alpha: 0.5),
+                    blurRadius: 12,
+                  ),
+                ],
               ),
             ),
         ],
       ),
     );
+  }
+}
+
+class PulsingCirclePainter extends CustomPainter {
+  final Color color;
+  final double scale;
+
+  PulsingCirclePainter({required this.color, required this.scale});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width / 2) * scale;
+
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(center, radius, paint);
+  }
+
+  @override
+  bool shouldRepaint(PulsingCirclePainter oldDelegate) {
+    return oldDelegate.scale != scale;
+  }
+}
+
+class ChargingPainter extends CustomPainter {
+  final int batteryLevel;
+  final bool isCharging;
+  final Color batteryColor;
+  final double spinProgress;
+
+  ChargingPainter({
+    required this.batteryLevel,
+    required this.isCharging,
+    required this.batteryColor,
+    required this.spinProgress,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 20;
+    final fillPercentage = batteryLevel / 100.0;
+
+    // Draw background circle
+    final backgroundPaint = Paint()
+      ..color = batteryColor.withValues(alpha: 0.1)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(center, radius, backgroundPaint);
+
+    // Draw battery ring outline
+    final outlinePaint = Paint()
+      ..color = batteryColor.withValues(alpha: 0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(center, radius, outlinePaint);
+
+    // Draw filled arc
+    final fillPaint = Paint()
+      ..color = batteryColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 12
+      ..strokeCap = StrokeCap.round;
+
+    final sweepAngle = fillPercentage * 2 * math.pi;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2, // Start from top
+      sweepAngle,
+      false,
+      fillPaint,
+    );
+
+    // Draw animated charging rings when charging
+    if (isCharging) {
+      // Outer rotating rings
+      for (int i = 0; i < 3; i++) {
+        final angle = (spinProgress * 2 * math.pi) + (i * 2 * math.pi / 3);
+        final x = center.dx + math.cos(angle) * (radius + 15);
+        final y = center.dy + math.sin(angle) * (radius + 15);
+        
+        final ringPaint = Paint()
+          ..color = batteryColor.withValues(alpha: 0.6)
+          ..style = PaintingStyle.fill;
+        
+        canvas.drawCircle(Offset(x, y), 8, ringPaint);
+        
+        // Glow effect
+        final glowPaint = Paint()
+          ..color = batteryColor.withValues(alpha: 0.3)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+        
+        canvas.drawCircle(Offset(x, y), 32, glowPaint);
+      }
+
+      // Inner charging wave
+      final waveAngle = -math.pi / 2 + (fillPercentage * 2 * math.pi);
+      final wavePaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.8)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 8
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius - 5),
+        waveAngle - 0.3,
+        0.6,
+        false,
+        wavePaint,
+      );
+    }
+
+    // Draw center dot with glow
+    final dotPaint = Paint()
+      ..color = batteryColor
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(center, 1, dotPaint);
+
+    final glowPaint = Paint()
+      ..color = batteryColor.withValues(alpha: 0.5)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 32);
+
+    canvas.drawCircle(center, 32, glowPaint);
+  }
+
+  @override
+  bool shouldRepaint(ChargingPainter oldDelegate) {
+    return oldDelegate.batteryLevel != batteryLevel ||
+        oldDelegate.isCharging != isCharging ||
+        oldDelegate.spinProgress != spinProgress;
   }
 }

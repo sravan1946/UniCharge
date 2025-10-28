@@ -4,6 +4,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/firebase_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
+import 'widgets/booking_status_animation.dart';
+import 'widgets/booking_notification.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,13 +28,25 @@ class ParkChargeApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.read(appRouterProvider);
+    
     return MaterialApp.router(
       title: 'ParkCharge',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
-      routerConfig: ref.watch(appRouterProvider),
+      routerConfig: router,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return BookingStatusAnimation(
+          child: Stack(
+            children: [
+              child!,
+              const BookingNotification(),
+            ],
+          ),
+        );
+      },
     );
   }
 }

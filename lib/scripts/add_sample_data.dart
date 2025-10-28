@@ -73,6 +73,52 @@ void main() async {
       print('  ✓ Added $totalSlots slots\n');
     }
     
+    print('\n📋 Adding sample bookings...\n');
+    
+    // Add sample bookings for testing
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final stations = await firestore.collection('stations').limit(3).get();
+      final slots = await firestore.collection('slots').limit(3).get();
+      
+      if (stations.docs.isNotEmpty && slots.docs.isNotEmpty) {
+        final stationId = stations.docs.first.id;
+        final slotId = slots.docs.first.id;
+        
+        // Add a completed booking
+        await firestore.collection('bookings').add({
+          'userId': user.uid,
+          'stationId': stationId,
+          'slotId': slotId,
+          'startTime': Timestamp.fromDate(DateTime.now().subtract(const Duration(days: 2, hours: 2))),
+          'endTime': Timestamp.fromDate(DateTime.now().subtract(const Duration(days: 2))),
+          'durationHours': 2,
+          'pricePerHour': 50.0,
+          'totalPrice': 100.0,
+          'status': 'completed',
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        
+        // Add an active booking
+        await firestore.collection('bookings').add({
+          'userId': user.uid,
+          'stationId': stationId,
+          'slotId': slotId,
+          'startTime': Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 1))),
+          'endTime': Timestamp.fromDate(DateTime.now().add(const Duration(hours: 1))),
+          'durationHours': 2,
+          'pricePerHour': 50.0,
+          'totalPrice': 100.0,
+          'status': 'active',
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        
+        print('✓ Added sample bookings');
+      }
+    }
+    
     print('${'=' * 60}');
     print('✅ Sample data added successfully!');
     print('${'=' * 60}\n');

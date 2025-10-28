@@ -4,41 +4,67 @@ import 'package:go_router/go_router.dart';
 import 'package:unicharge/providers/auth_provider.dart';
 import 'package:unicharge/features/main/screens/main_shell_screen.dart';
 
+// Create router as a top-level variable to persist across hot reloads
+final _router = GoRouter(
+  initialLocation: '/',
+  debugLogDiagnostics: true,
+  routes: [
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const AuthWrapper(),
+    ),
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/signup',
+      builder: (context, state) => const SignupScreen(),
+    ),
+  ],
+);
+
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
-  
-  return GoRouter(
-    initialLocation: '/',
-    redirect: (context, state) {
-      final isLoggedIn = authState.value != null;
-      final isLoggingIn = state.matchedLocation == '/login' || state.matchedLocation == '/signup';
-      
-      if (!isLoggedIn && !isLoggingIn) {
-        return '/login';
-      }
-      
-      if (isLoggedIn && isLoggingIn) {
-        return '/';
-      }
-      
-      return null;
-    },
-    routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const MainShellScreen(),
-      ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/signup',
-        builder: (context, state) => const SignupScreen(),
-      ),
-    ],
-  );
+  return _router;
 });
+
+class AuthWrapper extends ConsumerWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateProvider);
+    
+    return authState.when(
+      data: (user) {
+        if (user == null) {
+          return const LoginScreen();
+        }
+        return const MainShellScreen(key: ValueKey('main_shell'));
+      },
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64),
+              const SizedBox(height: 16),
+              Text('Error: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(authStateProvider),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -71,10 +97,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               // Logo
               Icon(
                 Icons.electric_car,
@@ -164,6 +191,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: const Text('Don\'t have an account? Sign up'),
               ),
             ],
+            ),
           ),
         ),
       ),

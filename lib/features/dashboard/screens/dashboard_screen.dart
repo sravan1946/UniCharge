@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unicharge/core/constants/app_colors.dart';
 import 'package:unicharge/providers/auth_provider.dart';
 import 'package:unicharge/providers/booking_provider.dart';
-import 'package:unicharge/services/firestore_database_service.dart';
 import 'package:unicharge/features/dashboard/widgets/charging_status_card.dart';
-import 'package:unicharge/features/dashboard/widgets/stats_card.dart';
 import 'package:unicharge/features/dashboard/widgets/recent_activity_card.dart';
 import 'package:unicharge/widgets/booking_timer_widget.dart';
+import 'package:unicharge/widgets/debug_hot_reload.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -88,91 +87,9 @@ class DashboardScreen extends ConsumerWidget {
                     error: (error, stack) => const SizedBox.shrink(),
                   ),
 
-                  // User stats
-                  Text(
-                    'Your Stats',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 12),
-                  FutureBuilder(
-                    future: FirestoreDatabaseService().getUserProfile(user.uid),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const Row(
-                          children: [
-                            Expanded(child: StatsCard(title: 'Loading...', value: '-', icon: Icons.hourglass_empty, color: AppColors.primary)),
-                            SizedBox(width: 12),
-                            Expanded(child: StatsCard(title: 'Loading...', value: '-', icon: Icons.hourglass_empty, color: AppColors.primary)),
-                          ],
-                        );
-                      }
-                      final profile = snapshot.data;
-                      final bookingsState = ref.watch(userBookingsProvider(user.uid));
-                      
-                      return bookingsState.when(
-                        data: (bookings) {
-                          final totalBookings = bookings.length;
-                          final totalHours = bookings.fold<double>(
-                            0.0,
-                            (sum, booking) => sum + booking.durationHours,
-                          );
-                          final loyaltyPoints = profile?.loyaltyPoints ?? 0;
-                          final moneySaved = (totalBookings * 50).toString(); // Rough estimate
-                          
-                          return Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: StatsCard(
-                                      title: 'Total Bookings',
-                                      value: totalBookings.toString(),
-                                      icon: Icons.book_online,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: StatsCard(
-                                      title: 'Hours Parked',
-                                      value: totalHours.toStringAsFixed(0),
-                                      icon: Icons.access_time,
-                                      color: AppColors.secondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: StatsCard(
-                                      title: 'Loyalty Points',
-                                      value: loyaltyPoints.toString(),
-                                      icon: Icons.stars,
-                                      color: AppColors.accent,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: StatsCard(
-                                      title: 'Money Saved',
-                                      value: '₹$moneySaved',
-                                      icon: Icons.savings,
-                                      color: AppColors.success,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          );
-                        },
-                        loading: () => const CircularProgressIndicator(),
-                        error: (e, stack) => const Text('Error loading bookings'),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
+                  // Debug hot reload widget
+                  const DebugHotReloadWidget(),
+                  const SizedBox(height: 16),
 
                   // Recent activity
                   Text(
@@ -181,46 +98,6 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   const RecentActivityCard(),
-                  const SizedBox(height: 24),
-
-                  // Quick actions
-                  Text(
-                    'Quick Actions',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            // TODO: Navigate to map
-                          },
-                          icon: const Icon(Icons.location_on),
-                          label: const Text('Find Station'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            // TODO: Navigate to booking history
-                          },
-                          icon: const Icon(Icons.history),
-                          label: const Text('View History'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            side: BorderSide(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),

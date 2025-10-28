@@ -1,34 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../providers/booking_provider.dart';
+import '../../../services/firestore_database_service.dart';
+import '../../../models/station_model.dart';
+import '../../bookings/screens/booking_history_screen.dart';
 
-class RecentActivityCard extends StatelessWidget {
+class RecentActivityCard extends ConsumerWidget {
   const RecentActivityCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Mock data for recent activity
-    final activities = [
-      {
-        'station': 'MG Road Charging Hub',
-        'date': 'Today, 2:30 PM',
-        'duration': '2h 15m',
-        'cost': '₹150',
-        'status': 'completed',
-      },
-      {
-        'station': 'Koramangala Tech Park',
-        'date': 'Yesterday, 6:45 PM',
-        'duration': '1h 30m',
-        'cost': '₹100',
-        'status': 'completed',
-      },
-      {
-        'station': 'Whitefield Mall Station',
-        'date': '2 days ago, 10:15 AM',
-        'duration': '3h 45m',
-        'cost': '₹225',
-        'status': 'completed',
-      },
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authStateProvider).value;
+    if (user == null) return const SizedBox.shrink();
+
+    final bookingsState = ref.watch(userBookingsProvider(user.uid));
 
     return Card(
       elevation: 0,
@@ -44,12 +31,123 @@ class RecentActivityCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            ...activities.map((activity) => _buildActivityItem(context, activity)),
+            bookingsState.when(
+              data: (bookings) {
+                // Debug: Print booking count
+                print('Recent Activity: Found ${bookings.length} bookings');
+                
+                // Show all bookings (not just completed) and limit to 3
+                final recentBookings = bookings.take(3).toList();
+
+                if (recentBookings.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          Text(
+                            'No recent sessions',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Make a booking to see it here',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: [
+                    ...recentBookings.map(
+                      (booking) => FutureBuilder<StationModel>(
+                        future: FirestoreDatabaseService().getStationById(booking.stationId),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return _buildActivityItem(
+                              context,
+                              {
+                                'station': 'Loading...',
+                                'date': _formatDate(booking.startTime),
+                                'duration': '${booking.durationHours}h',
+                                'cost': '₹${booking.totalPrice.toStringAsFixed(0)}',
+                                'status': booking.status.displayName.toLowerCase(),
+                              },
+                            );
+                          }
+                          final station = snapshot.data!;
+                          return _buildActivityItem(
+                            context,
+                            {
+                              'station': station.name,
+                              'date': _formatDate(booking.startTime),
+                              'duration': '${booking.durationHours}h',
+                              'cost': '₹${booking.totalPrice.toStringAsFixed(0)}',
+                              'status': booking.status.displayName.toLowerCase(),
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+              error: (error, stack) {
+                print('Recent Activity Error: $error');
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          color: Theme.of(context).colorScheme.error,
+                          size: 32,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Error loading sessions',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          error.toString(),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.7),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
             const SizedBox(height: 8),
             Center(
               child: TextButton(
                 onPressed: () {
-                  // TODO: Navigate to full history
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const BookingHistoryScreen(),
+                    ),
+                  );
                 },
                 child: const Text('View All History'),
               ),
@@ -58,6 +156,21 @@ class RecentActivityCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays == 0) {
+      return 'Today, ${DateFormat('h:mm a').format(date)}';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday, ${DateFormat('h:mm a').format(date)}';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days ago, ${DateFormat('h:mm a').format(date)}';
+    } else {
+      return DateFormat('MMM d, h:mm a').format(date);
+    }
   }
 
   Widget _buildActivityItem(BuildContext context, Map<String, String> activity) {
@@ -118,10 +231,43 @@ class RecentActivityCard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(activity['status']!).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  activity['status']!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: _getStatusColor(activity['status']!),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return Colors.green;
+      case 'active':
+        return Colors.blue;
+      case 'reserved':
+        return Colors.orange;
+      case 'pending':
+        return Colors.yellow.shade700;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 }

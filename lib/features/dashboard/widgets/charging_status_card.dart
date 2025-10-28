@@ -7,6 +7,7 @@ import 'package:unicharge/models/enums.dart';
 import 'package:unicharge/providers/stations_provider.dart';
 import 'package:unicharge/providers/booking_provider.dart';
 import 'package:unicharge/shared/widgets/rive_charging_widget.dart';
+import 'package:unicharge/features/bookings/screens/booking_confirmation_screen.dart';
 
 class ChargingStatusCard extends ConsumerWidget {
   final BookingModel booking;
@@ -249,80 +250,142 @@ class ChargingStatusCard extends ConsumerWidget {
   }
 
   Widget _buildReservedActions(BuildContext context, WidgetRef ref, BookingModel booking) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () {
-              // TODO: Navigate to station
-            },
-            icon: const Icon(Icons.location_on, size: 18),
-            label: const Text('Navigate', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.white, width: 1.5),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BookingConfirmationScreen(booking: booking),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.qr_code, size: 18),
+                label: const Text('View QR Code', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () => _cancelBooking(context, ref, booking),
-            icon: const Icon(Icons.cancel, size: 18),
-            label: const Text('Cancel', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  // TODO: Navigate to station
+                },
+                icon: const Icon(Icons.location_on, size: 18),
+                label: const Text('Navigate', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _cancelBooking(context, ref, booking),
+                icon: const Icon(Icons.cancel, size: 18),
+                label: const Text('Cancel', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
   Widget _buildActiveActions(BuildContext context, WidgetRef ref, SlotModel? slot, BookingModel booking) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () {
-              // TODO: Navigate to station
-            },
-            icon: const Icon(Icons.location_on, size: 18),
-            label: const Text('Navigate', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.white, width: 1.5),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BookingConfirmationScreen(booking: booking),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.qr_code, size: 18),
+                label: const Text('View QR Code', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () => _endBooking(context, ref, slot, booking),
-            icon: const Icon(Icons.stop, size: 18),
-            label: const Text('End', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.primary,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  // TODO: Navigate to station
+                },
+                icon: const Icon(Icons.location_on, size: 18),
+                label: const Text('Navigate', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _endBooking(context, ref, slot, booking),
+                icon: const Icon(Icons.stop, size: 18),
+                label: const Text('End', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

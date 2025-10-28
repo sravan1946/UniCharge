@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unicharge/providers/auth_provider.dart';
 import 'package:unicharge/features/profile/widgets/profile_header.dart';
 import 'package:unicharge/features/profile/widgets/profile_stats.dart';
-import 'package:unicharge/features/profile/widgets/profile_settings.dart';
 import 'package:unicharge/features/admin/screens/qr_scanner_screen.dart';
+import 'package:unicharge/features/settings/screens/settings_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -20,7 +20,12 @@ class ProfileScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              // TODO: Navigate to settings
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
             },
           ),
         ],
@@ -50,10 +55,6 @@ class ProfileScreen extends ConsumerWidget {
 
                 // Profile stats
                 const ProfileStats(),
-                const SizedBox(height: 24),
-
-                // Settings
-                const ProfileSettings(),
                 const SizedBox(height: 24),
 
                 // Admin Section

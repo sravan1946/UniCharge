@@ -60,6 +60,19 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
         _showError('Booking is not in reserved status');
         return;
       }
+
+      // Check if booking is within the allowed time window (±5 minutes)
+      final now = DateTime.now();
+      final timeDifference = now.difference(booking.startTime).inMinutes.abs();
+      if (timeDifference > 5) {
+        _showError(
+          'Booking can only be activated within 5 minutes of the scheduled start time.\n'
+          'Scheduled: ${_formatTime(booking.startTime)}\n'
+          'Current: ${_formatTime(now)}\n'
+          'Time difference: ${timeDifference} minutes'
+        );
+        return;
+      }
       
       // Activate the booking
       await ref.read(bookingStateProvider.notifier).activateBooking(
@@ -104,6 +117,10 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
         setState(() {});
       }
     });
+  }
+
+  String _formatTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
   @override

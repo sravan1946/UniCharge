@@ -186,9 +186,9 @@ class FirestoreDatabaseService {
           'slotIndex': (data['slotIndex'] is String) ? int.parse(data['slotIndex']) : (data['slotIndex'] as int? ?? 0),
           'type': _parseSlotType(data['type']),
           'status': _parseSlotStatus(data['status']),
-          'batteryStatus': data['batteryStatus'],
+          'batteryStatus': _parseBatteryStatus(data['batteryStatus']),
           'lastUpdated': lastUpdated.toIso8601String(),
-          'reservedByUserId': data['reservedByUserId'],
+          'reservedByUserId': data['reservedByUserId'] as String?,
           'reservedUntil': reservedUntil?.toIso8601String(),
         });
       }).toList();
@@ -235,9 +235,10 @@ class FirestoreDatabaseService {
     required String slotId,
     required int durationHours,
     required double pricePerHour,
+    DateTime? customStartTime,
   }) async {
     try {
-      final startTime = DateTime.now();
+      final startTime = customStartTime ?? DateTime.now();
       final endTime = startTime.add(Duration(hours: durationHours));
       final totalPrice = durationHours * pricePerHour;
 
@@ -379,11 +380,29 @@ class FirestoreDatabaseService {
 
   /// Mark a reserved booking as occupied (when QR code is scanned)
   /// This transitions the booking from reserved → active and slot from reserved → occupied
+  /// Only allows activation within ±5 minutes of the scheduled start time
   Future<void> activateBooking({
     required String bookingId,
     required String slotId,
   }) async {
     try {
+      // First, get the booking to check the start time
+      final booking = await getBookingById(bookingId);
+      if (booking == null) {
+        throw Exception('Booking not found');
+      }
+
+      // Check if booking is within the allowed time window (±5 minutes)
+      if (!_isWithinActivationWindow(booking.startTime)) {
+        final now = DateTime.now();
+        final timeDiff = now.difference(booking.startTime).inMinutes;
+        throw Exception(
+          'Booking can only be activated within 5 minutes of the scheduled start time. '
+          'Scheduled: ${_formatTime(booking.startTime)}, Current: ${_formatTime(now)}. '
+          'Time difference: ${timeDiff.abs()} minutes'
+        );
+      }
+
       // Update booking status to active
       await _firestore
           .collection(FirebaseConfig.bookingsCollection)
@@ -400,6 +419,18 @@ class FirestoreDatabaseService {
     } on FirebaseException catch (e) {
       throw _handleDatabaseException(e);
     }
+  }
+
+  /// Check if current time is within ±5 minutes of the booking start time
+  bool _isWithinActivationWindow(DateTime startTime) {
+    final now = DateTime.now();
+    final timeDifference = now.difference(startTime).inMinutes.abs();
+    return timeDifference <= 5;
+  }
+
+  /// Format time for error messages
+  String _formatTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
   /// Complete a booking and free up the slot
@@ -461,6 +492,159 @@ class FirestoreDatabaseService {
     }
   }
 
+  // Get bookings for a specific slot within a date range
+  Future<List<BookingModel>> getSlotBookings({
+    required String slotId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      final snapshot = await _firestore
+          .collection(FirebaseConfig.bookingsCollection)
+          .where('slotId', isEqualTo: slotId)
+          .where('status', whereIn: ['reserved', 'active'])
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return BookingModel.fromJson({
+          'id': doc.id,
+          'userId': data['userId'],
+          'stationId': data['stationId'],
+          'slotId': data['slotId'],
+          'status': data['status'],
+          'startTime': (data['startTime'] as Timestamp?)?.toDate().toIso8601String(),
+          'endTime': (data['endTime'] as Timestamp?)?.toDate().toIso8601String(),
+          'pricePerHour': data['pricePerHour'],
+          'durationHours': data['durationHours'],
+          'totalPrice': data['totalPrice'],
+          'createdAt': (data['createdAt'] as Timestamp?)?.toDate().toIso8601String(),
+          'cancelledAt': (data['cancelledAt'] as Timestamp?)?.toDate().toIso8601String(),
+          'cancellationReason': data['cancellationReason'],
+          'qrToken': data['qrToken'],
+        });
+      }).toList();
+    } on FirebaseException catch (e) {
+      throw _handleDatabaseException(e);
+    }
+  }
+
+  // Check if a slot is available for a specific time range
+  Future<bool> isSlotAvailable({
+    required String slotId,
+    required DateTime startTime,
+    required DateTime endTime,
+  }) async {
+    try {
+      // First check if the slot itself is available (not occupied)
+      final slotDoc = await _firestore
+          .collection(FirebaseConfig.slotsCollection)
+          .doc(slotId)
+          .get();
+      
+      if (!slotDoc.exists) {
+        return false; // Slot doesn't exist
+      }
+      
+      final slotData = slotDoc.data()!;
+      final slotStatus = slotData['status'] as String?;
+      
+      // If slot is occupied, it's not available
+      if (slotStatus == 'occupied') {
+        return false;
+      }
+      
+      // Check for overlapping bookings
+      final bookings = await getSlotBookings(
+        slotId: slotId,
+        startDate: startTime.subtract(const Duration(hours: 1)), // Check slightly before
+        endDate: endTime.add(const Duration(hours: 1)), // Check slightly after
+      );
+
+      // Check for any overlapping bookings
+      for (final booking in bookings) {
+        final bookingStart = booking.startTime;
+        final bookingEnd = booking.endTime ?? bookingStart.add(Duration(hours: booking.durationHours));
+        
+        // Check if there's any overlap (with 15-minute buffer)
+        final buffer = const Duration(minutes: 15);
+        if (startTime.isBefore(bookingEnd.add(buffer)) && endTime.isAfter(bookingStart.subtract(buffer))) {
+          return false; // Slot is not available
+        }
+      }
+      
+      return true; // Slot is available
+    } on FirebaseException catch (e) {
+      throw _handleDatabaseException(e);
+    }
+  }
+
+  // Get detailed availability information for a slot
+  Future<Map<String, dynamic>> getSlotAvailabilityDetails({
+    required String slotId,
+    required DateTime startTime,
+    required DateTime endTime,
+  }) async {
+    try {
+      final slotDoc = await _firestore
+          .collection(FirebaseConfig.slotsCollection)
+          .doc(slotId)
+          .get();
+      
+      if (!slotDoc.exists) {
+        return {
+          'isAvailable': false,
+          'reason': 'Slot does not exist',
+          'conflictingBookings': <BookingModel>[],
+        };
+      }
+      
+      final slotData = slotDoc.data()!;
+      final slotStatus = slotData['status'] as String?;
+      
+      // Get all bookings for the slot
+      final bookings = await getSlotBookings(
+        slotId: slotId,
+        startDate: startTime.subtract(const Duration(hours: 1)),
+        endDate: endTime.add(const Duration(hours: 1)),
+      );
+      
+      // Find conflicting bookings
+      final conflictingBookings = <BookingModel>[];
+      for (final booking in bookings) {
+        final bookingStart = booking.startTime;
+        final bookingEnd = booking.endTime ?? bookingStart.add(Duration(hours: booking.durationHours));
+        
+        // Check if there's any overlap (with 15-minute buffer)
+        final buffer = const Duration(minutes: 15);
+        if (startTime.isBefore(bookingEnd.add(buffer)) && endTime.isAfter(bookingStart.subtract(buffer))) {
+          conflictingBookings.add(booking);
+        }
+      }
+      
+      // Determine availability
+      bool isAvailable = true;
+      String reason = 'Available';
+      
+      if (slotStatus == 'occupied') {
+        isAvailable = false;
+        reason = 'Slot is currently occupied';
+      } else if (conflictingBookings.isNotEmpty) {
+        isAvailable = false;
+        reason = 'Conflicts with existing bookings';
+      }
+      
+      return {
+        'isAvailable': isAvailable,
+        'reason': reason,
+        'conflictingBookings': conflictingBookings,
+        'slotStatus': slotStatus,
+      };
+    } on FirebaseException catch (e) {
+      throw _handleDatabaseException(e);
+    }
+  }
+
   // Realtime listeners
   Stream<List<SlotModel>> subscribeToSlots(String stationId) {
     return _firestore
@@ -471,16 +655,43 @@ class FirestoreDatabaseService {
         .map((snapshot) {
           return snapshot.docs.map((doc) {
             final data = doc.data();
+            
+            // Handle lastUpdated
+            DateTime lastUpdated;
+            if (data['lastUpdated'] is Timestamp) {
+              lastUpdated = data['lastUpdated'].toDate();
+            } else if (data['lastUpdated'] != null) {
+              try {
+                lastUpdated = DateTime.parse(data['lastUpdated']);
+              } catch (e) {
+                lastUpdated = DateTime.now();
+              }
+            } else {
+              lastUpdated = DateTime.now();
+            }
+            
+            // Handle reservedUntil
+            DateTime? reservedUntil;
+            if (data['reservedUntil'] is Timestamp) {
+              reservedUntil = data['reservedUntil'].toDate();
+            } else if (data['reservedUntil'] != null) {
+              try {
+                reservedUntil = DateTime.parse(data['reservedUntil']);
+              } catch (e) {
+                reservedUntil = null;
+              }
+            }
+            
             return SlotModel.fromJson({
               'id': doc.id,
-              'stationId': data['stationId'],
-              'slotIndex': (data['slotIndex'] is String) ? int.parse(data['slotIndex']) : data['slotIndex'],
-              'type': data['type'],
-              'status': data['status'],
-              'batteryStatus': data['batteryStatus'],
-              'lastUpdated': (data['lastUpdated'] as Timestamp?)?.toDate().toIso8601String(),
-              'reservedByUserId': data['reservedByUserId'],
-              'reservedUntil': (data['reservedUntil'] as Timestamp?)?.toDate().toIso8601String(),
+              'stationId': data['stationId'] as String? ?? '',
+              'slotIndex': (data['slotIndex'] is String) ? int.parse(data['slotIndex']) : (data['slotIndex'] as int? ?? 0),
+              'type': _parseSlotType(data['type']),
+              'status': _parseSlotStatus(data['status']),
+              'batteryStatus': _parseBatteryStatus(data['batteryStatus']),
+              'lastUpdated': lastUpdated.toIso8601String(),
+              'reservedByUserId': data['reservedByUserId'] as String?,
+              'reservedUntil': reservedUntil?.toIso8601String(),
             });
           }).toList();
         });
@@ -601,6 +812,14 @@ class FirestoreDatabaseService {
       }
     }
     return type.toString();
+  }
+
+  String? _parseBatteryStatus(dynamic batteryStatus) {
+    if (batteryStatus == null) return null;
+    if (batteryStatus is String) {
+      return batteryStatus;
+    }
+    return null;
   }
 
   String _parseSlotStatus(dynamic status) {

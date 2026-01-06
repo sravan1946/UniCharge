@@ -7,6 +7,7 @@ import 'package:unicharge/services/firestore_database_service.dart';
 import 'package:unicharge/features/dashboard/widgets/charging_status_card.dart';
 import 'package:unicharge/features/dashboard/widgets/stats_card.dart';
 import 'package:unicharge/features/dashboard/widgets/recent_activity_card.dart';
+import 'package:unicharge/widgets/booking_timer_widget.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -72,7 +73,11 @@ class DashboardScreen extends ConsumerWidget {
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 12),
-                            ChargingStatusCard(booking: booking),
+                            // Wrap with timer widget for auto-completion
+                            BookingTimerWidget(
+                              booking: booking,
+                              child: ChargingStatusCard(booking: booking),
+                            ),
                             const SizedBox(height: 24),
                           ],
                         );
@@ -97,7 +102,7 @@ class DashboardScreen extends ConsumerWidget {
                           children: [
                             Expanded(child: StatsCard(title: 'Loading...', value: '-', icon: Icons.hourglass_empty, color: AppColors.primary)),
                             SizedBox(width: 12),
-                            Expanded(child: StatsCard(title: 'Loading...', value: '-', icon: Icons.hourglass_empty, color: AppColors.secondary)),
+                            Expanded(child: StatsCard(title: 'Loading...', value: '-', icon: Icons.hourglass_empty, color: AppColors.primary)),
                           ],
                         );
                       }
@@ -145,7 +150,7 @@ class DashboardScreen extends ConsumerWidget {
                                       title: 'Loyalty Points',
                                       value: loyaltyPoints.toString(),
                                       icon: Icons.stars,
-                                      color: AppColors.warning,
+                                      color: AppColors.accent,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -193,6 +198,9 @@ class DashboardScreen extends ConsumerWidget {
                           },
                           icon: const Icon(Icons.location_on),
                           label: const Text('Find Station'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -203,6 +211,12 @@ class DashboardScreen extends ConsumerWidget {
                           },
                           icon: const Icon(Icons.history),
                           label: const Text('View History'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+                            ),
+                          ),
                         ),
                       ),
                     ],

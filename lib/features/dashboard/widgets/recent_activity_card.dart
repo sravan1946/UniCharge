@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
 
 class RecentActivityCard extends StatelessWidget {
   const RecentActivityCard({super.key});
@@ -32,19 +31,19 @@ class RecentActivityCard extends StatelessWidget {
     ];
 
     return Card(
-      elevation: 2,
+      elevation: 0,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Recent Sessions',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             ...activities.map((activity) => _buildActivityItem(context, activity)),
             const SizedBox(height: 8),
             Center(
@@ -62,16 +61,24 @@ class RecentActivityCard extends StatelessWidget {
   }
 
   Widget _buildActivityItem(BuildContext context, Map<String, String> activity) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+        ),
+      ),
       child: Row(
         children: [
           Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: AppColors.success,
-              shape: BoxShape.circle,
+            width: 4,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(width: 12),
@@ -81,10 +88,11 @@ class RecentActivityCard extends StatelessWidget {
               children: [
                 Text(
                   activity['station']!,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   activity['date']!,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -100,14 +108,14 @@ class RecentActivityCard extends StatelessWidget {
               Text(
                 activity['duration']!,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 activity['cost']!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.success,
-                  fontWeight: FontWeight.w600,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],

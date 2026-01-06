@@ -33,6 +33,7 @@ mixin _$BookingModel {
   DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime? get cancelledAt => throw _privateConstructorUsedError;
   String? get cancellationReason => throw _privateConstructorUsedError;
+  String? get qrToken => throw _privateConstructorUsedError;
 
   /// Serializes this BookingModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -63,7 +64,8 @@ abstract class $BookingModelCopyWith<$Res> {
       double totalPrice,
       DateTime createdAt,
       DateTime? cancelledAt,
-      String? cancellationReason});
+      String? cancellationReason,
+      String? qrToken});
 }
 
 /// @nodoc
@@ -94,6 +96,7 @@ class _$BookingModelCopyWithImpl<$Res, $Val extends BookingModel>
     Object? createdAt = null,
     Object? cancelledAt = freezed,
     Object? cancellationReason = freezed,
+    Object? qrToken = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -148,6 +151,10 @@ class _$BookingModelCopyWithImpl<$Res, $Val extends BookingModel>
           ? _value.cancellationReason
           : cancellationReason // ignore: cast_nullable_to_non_nullable
               as String?,
+      qrToken: freezed == qrToken
+          ? _value.qrToken
+          : qrToken // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -173,7 +180,8 @@ abstract class _$$BookingModelImplCopyWith<$Res>
       double totalPrice,
       DateTime createdAt,
       DateTime? cancelledAt,
-      String? cancellationReason});
+      String? cancellationReason,
+      String? qrToken});
 }
 
 /// @nodoc
@@ -202,6 +210,7 @@ class __$$BookingModelImplCopyWithImpl<$Res>
     Object? createdAt = null,
     Object? cancelledAt = freezed,
     Object? cancellationReason = freezed,
+    Object? qrToken = freezed,
   }) {
     return _then(_$BookingModelImpl(
       id: null == id
@@ -256,6 +265,10 @@ class __$$BookingModelImplCopyWithImpl<$Res>
           ? _value.cancellationReason
           : cancellationReason // ignore: cast_nullable_to_non_nullable
               as String?,
+      qrToken: freezed == qrToken
+          ? _value.qrToken
+          : qrToken // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -276,7 +289,8 @@ class _$BookingModelImpl implements _BookingModel {
       required this.totalPrice,
       required this.createdAt,
       this.cancelledAt,
-      this.cancellationReason});
+      this.cancellationReason,
+      this.qrToken});
 
   factory _$BookingModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$BookingModelImplFromJson(json);
@@ -307,10 +321,12 @@ class _$BookingModelImpl implements _BookingModel {
   final DateTime? cancelledAt;
   @override
   final String? cancellationReason;
+  @override
+  final String? qrToken;
 
   @override
   String toString() {
-    return 'BookingModel(id: $id, userId: $userId, stationId: $stationId, slotId: $slotId, status: $status, startTime: $startTime, endTime: $endTime, pricePerHour: $pricePerHour, durationHours: $durationHours, totalPrice: $totalPrice, createdAt: $createdAt, cancelledAt: $cancelledAt, cancellationReason: $cancellationReason)';
+    return 'BookingModel(id: $id, userId: $userId, stationId: $stationId, slotId: $slotId, status: $status, startTime: $startTime, endTime: $endTime, pricePerHour: $pricePerHour, durationHours: $durationHours, totalPrice: $totalPrice, createdAt: $createdAt, cancelledAt: $cancelledAt, cancellationReason: $cancellationReason, qrToken: $qrToken)';
   }
 
   @override
@@ -338,7 +354,8 @@ class _$BookingModelImpl implements _BookingModel {
             (identical(other.cancelledAt, cancelledAt) ||
                 other.cancelledAt == cancelledAt) &&
             (identical(other.cancellationReason, cancellationReason) ||
-                other.cancellationReason == cancellationReason));
+                other.cancellationReason == cancellationReason) &&
+            (identical(other.qrToken, qrToken) || other.qrToken == qrToken));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -357,7 +374,8 @@ class _$BookingModelImpl implements _BookingModel {
       totalPrice,
       createdAt,
       cancelledAt,
-      cancellationReason);
+      cancellationReason,
+      qrToken);
 
   /// Create a copy of BookingModel
   /// with the given fields replaced by the non-null parameter values.
@@ -389,7 +407,8 @@ abstract class _BookingModel implements BookingModel {
       required final double totalPrice,
       required final DateTime createdAt,
       final DateTime? cancelledAt,
-      final String? cancellationReason}) = _$BookingModelImpl;
+      final String? cancellationReason,
+      final String? qrToken}) = _$BookingModelImpl;
 
   factory _BookingModel.fromJson(Map<String, dynamic> json) =
       _$BookingModelImpl.fromJson;
@@ -420,6 +439,8 @@ abstract class _BookingModel implements BookingModel {
   DateTime? get cancelledAt;
   @override
   String? get cancellationReason;
+  @override
+  String? get qrToken;
 
   /// Create a copy of BookingModel
   /// with the given fields replaced by the non-null parameter values.

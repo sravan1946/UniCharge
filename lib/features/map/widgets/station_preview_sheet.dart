@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:unicharge/models/station_model.dart';
 import 'package:unicharge/models/enums.dart';
 
@@ -112,9 +113,7 @@ class StationPreviewSheet extends StatelessWidget {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {
-                          // TODO: Navigate to station
-                        },
+                        onPressed: _navigateToStation,
                         icon: const Icon(Icons.navigation),
                         label: const Text('Navigate'),
                       ),
@@ -208,5 +207,15 @@ class StationPreviewSheet extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _navigateToStation() async {
+    final url = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=${station.latitude},${station.longitude}',
+    );
+    
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    }
   }
 }

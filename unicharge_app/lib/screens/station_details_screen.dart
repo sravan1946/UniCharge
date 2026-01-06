@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/app_bloc.dart';
+import 'package:provider/provider.dart';
+import '../services/appwrite_service.dart';
+import '../services/auth_state.dart';
 import '../models/station.dart';
 import '../models/slot.dart';
 import '../widgets/slot_grid.dart';
@@ -19,11 +20,80 @@ class StationDetailsScreen extends StatefulWidget {
 }
 
 class _StationDetailsScreenState extends State<StationDetailsScreen> {
+  List<Slot> _slots = [];
+  bool _isLoading = false;
+  String? _errorMessage;
+  
+  final _appwriteService = AppwriteService();
+
   @override
   void initState() {
     super.initState();
-    context.read<AppBloc>().add(LoadStationDetails(widget.station.id));
-    context.read<AppBloc>().add(LoadSlots(widget.station.id));
+    _loadSlots();
+  }
+
+  Future<void> _loadSlots() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final slots = await _appwriteService.getSlots(widget.station.id);
+      setState(() {
+        _slots = slots;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _reserveSlot(Slot slot) async {
+    final authState = context.read<AuthState>();
+    if (authState.currentUser == null) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _appwriteService.createBooking(
+        userId: authState.currentUser!.id,
+        stationId: widget.station.id,
+        slotId: slot.id,
+        price: widget.station.pricePerHour,
+      );
+
+      await _appwriteService.updateSlot(slot.id, {
+        'status': 'reserved',
+        'reserved_by': authState.currentUser!.id,
+      });
+
+      // Reload slots
+      await _loadSlots();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Slot reserved successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to reserve slot: $e')),
+        );
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -34,68 +104,46 @@ class _StationDetailsScreenState extends State<StationDetailsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () {
-              context.read<AppBloc>().add(LoadSlots(widget.station.id));
-            },
+            onPressed: _loadSlots,
           ),
         ],
       ),
-      body: BlocConsumer<AppBloc, AppState>(
-        listener: (context, state) {
-          if (state is AppError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
-          }
-        },
-        builder: (context, state) {
-          if (state is AppLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (state is AppError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(state.message),
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<AppBloc>().add(LoadSlots(widget.station.id));
-                    },
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          if (state is AppLoaded) {
-            return _buildStationDetails(state);
-          }
-
-          return const Center(child: CircularProgressIndicator());
-        },
-      ),
+      body: _buildBody(),
     );
   }
 
-  Widget _buildStationDetails(AppLoaded state) {
-    final station = state.selectedStation ?? widget.station;
-    final slots = state.slots;
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(_errorMessage!),
+            ElevatedButton(
+              onPressed: _loadSlots,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildStationInfo(station),
+          _buildStationInfo(widget.station),
           const SizedBox(height: 24),
-          _buildStationStats(station, slots),
+          _buildStationStats(widget.station, _slots),
           const SizedBox(height: 24),
-          _buildSlotGrid(slots),
+          _buildSlotGrid(_slots),
           const SizedBox(height: 24),
-          _buildAmenities(station),
+          _buildAmenities(widget.station),
         ],
       ),
     );
@@ -292,7 +340,7 @@ class _StationDetailsScreenState extends State<StationDetailsScreen> {
         station: widget.station,
         onBook: () {
           Navigator.pop(context);
-          context.read<AppBloc>().add(ReserveSlot(slot.id, widget.station.id));
+          _reserveSlot(slot);
         },
       ),
     );

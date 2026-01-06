@@ -146,23 +146,56 @@ class FirestoreDatabaseService {
       final snapshot = await _firestore
           .collection(FirebaseConfig.slotsCollection)
           .where('stationId', isEqualTo: stationId)
-          .orderBy('slotIndex')
           .get();
-
-      return snapshot.docs.map((doc) {
+      
+      // Sort by slotIndex in memory instead of using orderBy query
+      final slots = snapshot.docs.map((doc) {
         final data = doc.data();
+        print('Slot data: $data'); // Debug print
+        
+        // Handle lastUpdated - use current time if missing
+        DateTime lastUpdated;
+        if (data['lastUpdated'] is Timestamp) {
+          lastUpdated = data['lastUpdated'].toDate();
+        } else if (data['lastUpdated'] != null) {
+          try {
+            lastUpdated = DateTime.parse(data['lastUpdated']);
+          } catch (e) {
+            lastUpdated = DateTime.now();
+          }
+        } else {
+          lastUpdated = DateTime.now();
+        }
+        
+        // Handle reservedUntil
+        DateTime? reservedUntil;
+        if (data['reservedUntil'] is Timestamp) {
+          reservedUntil = data['reservedUntil'].toDate();
+        } else if (data['reservedUntil'] != null) {
+          try {
+            reservedUntil = DateTime.parse(data['reservedUntil']);
+          } catch (e) {
+            reservedUntil = null;
+          }
+        }
+        
         return SlotModel.fromJson({
           'id': doc.id,
-          'stationId': data['stationId'],
-          'slotIndex': (data['slotIndex'] is String) ? int.parse(data['slotIndex']) : data['slotIndex'],
-          'type': data['type'],
-          'status': data['status'],
+          'stationId': data['stationId'] as String? ?? '',
+          'slotIndex': (data['slotIndex'] is String) ? int.parse(data['slotIndex']) : (data['slotIndex'] as int? ?? 0),
+          'type': _parseSlotType(data['type']),
+          'status': _parseSlotStatus(data['status']),
           'batteryStatus': data['batteryStatus'],
-          'lastUpdated': data['lastUpdated']?.toIso8601String(),
+          'lastUpdated': lastUpdated.toIso8601String(),
           'reservedByUserId': data['reservedByUserId'],
-          'reservedUntil': data['reservedUntil']?.toIso8601String(),
+          'reservedUntil': reservedUntil?.toIso8601String(),
         });
       }).toList();
+      
+      // Sort by slotIndex
+      slots.sort((a, b) => a.slotIndex.compareTo(b.slotIndex));
+      
+      return slots;
     } on FirebaseException catch (e) {
       throw _handleDatabaseException(e);
     }
@@ -443,6 +476,44 @@ class FirestoreDatabaseService {
       }
     }
     return type.toString();
+  }
+
+  String _parseSlotType(dynamic type) {
+    if (type == null) return 'parkingSpace';
+    if (type is String) {
+      switch (type.toLowerCase()) {
+        case 'chargingpad':
+        case 'charging_pad':
+        case 'charging':
+          return 'chargingPad';
+        case 'parkingspace':
+        case 'parking_space':
+        case 'parking':
+          return 'parkingSpace';
+        default:
+          return type;
+      }
+    }
+    return type.toString();
+  }
+
+  String _parseSlotStatus(dynamic status) {
+    if (status == null) return 'available';
+    if (status is String) {
+      switch (status.toLowerCase()) {
+        case 'available':
+          return 'available';
+        case 'occupied':
+          return 'occupied';
+        case 'reserved':
+          return 'reserved';
+        case 'maintenance':
+          return 'maintenance';
+        default:
+          return 'available';
+      }
+    }
+    return status.toString();
   }
 
   String _handleDatabaseException(FirebaseException e) {

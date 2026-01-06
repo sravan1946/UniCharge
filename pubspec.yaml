@@ -1,0 +1,87 @@
+name: unicharge
+description: Smart Parking & EV Charging Management Platform
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  
+  # Backend & Database
+  appwrite: ^20.2.1
+  
+  # Maps & Location
+  google_maps_flutter: ^2.9.0
+  google_maps_flutter_web: ^0.5.10
+  geolocator: ^13.0.2
+  
+  # Animations
+  rive: ^0.13.18
+  
+  # Navigation
+  go_router: ^14.6.2
+  
+  # Environment & Configuration
+  flutter_dotenv: ^5.2.1
+  
+  # Data Models
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+  
+  # UI & Utilities
+  cupertino_icons: ^1.0.2
+  flutter_svg: ^2.0.10+1
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  flutter_staggered_animations: ^1.1.1
+  
+  # Device Features
+  permission_handler: ^11.3.1
+  haptic_feedback: ^0.5.1+1
+  flutter_web_auth_2: ^4.1.0
+  
+  # HTTP & Network
+  dio: ^5.4.3+1
+  
+  # Date & Time
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  # Code Generation
+  build_runner: ^2.4.9
+  freezed: ^2.5.7
+  json_serializable: ^6.8.0
+  riverpod_generator: ^2.6.2
+  
+  # Linting
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/animations/
+    - .env
+  
+  # fonts:
+  #   - family: Inter
+  #     fonts:
+  #       - asset: assets/fonts/Inter-Regular.ttf
+  #       - asset: assets/fonts/Inter-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/Inter-SemiBold.ttf
+  #         weight: 600
+  #       - asset: assets/fonts/Inter-Bold.ttf
+  #         weight: 700

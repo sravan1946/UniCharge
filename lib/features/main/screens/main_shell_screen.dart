@@ -19,11 +19,12 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   int _currentIndex = 0;
   bool _hasShownPermissionDialog = false;
 
-  final List<Widget> _screens = [
-    const DashboardScreen(),
-    const MapScreen(),
-    const StationsListScreen(),
-    const ProfileScreen(),
+  // Create list as instance variable that gets recreated on hot reload
+  List<Widget> get _screens => [
+    const DashboardScreen(key: ValueKey('dashboard')),
+    const MapScreen(key: ValueKey('map')),
+    const StationsListScreen(key: ValueKey('stations')),
+    const ProfileScreen(key: ValueKey('profile')),
   ];
 
   final List<Map<String, dynamic>> _navItems = [
@@ -68,10 +69,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
     });
 
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,

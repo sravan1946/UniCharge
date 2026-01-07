@@ -20,6 +20,17 @@ final userBookingUpdatesProvider = StreamProvider.family<List<BookingModel>, Str
   return databaseService.subscribeToUserBookings(userId);
 });
 
+// Active booking provider (real-time)
+final activeBookingProvider = StreamProvider.family<BookingModel?, String>((ref, userId) {
+  final databaseService = ref.watch(realtimeServiceProvider);
+  
+  return databaseService.subscribeToUserBookings(userId).map((bookings) {
+    return bookings.where((booking) => 
+      booking.status.name == 'active' || booking.status.name == 'reserved'
+    ).firstOrNull;
+  });
+});
+
 // Station updates provider
 final stationUpdatesProvider = StreamProvider<List>((ref) {
   final databaseService = ref.watch(realtimeServiceProvider);

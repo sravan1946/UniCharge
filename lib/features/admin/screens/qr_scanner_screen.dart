@@ -63,14 +63,35 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
 
       // Check if booking is within the allowed time window (±5 minutes)
       final now = DateTime.now();
-      final timeDifference = now.difference(booking.startTime).inMinutes.abs();
-      if (timeDifference > 5) {
-        _showError(
-          'Booking can only be activated within 5 minutes of the scheduled start time.\n'
-          'Scheduled: ${_formatTime(booking.startTime)}\n'
-          'Current: ${_formatTime(now)}\n'
-          'Time difference: ${timeDifference} minutes'
-        );
+      final timeDifference = now.difference(booking.startTime); // Positive = late, Negative = early
+      final absTimeDifference = timeDifference.inMinutes.abs();
+      
+      if (absTimeDifference > 5) {
+        // Determine if early or late
+        final isEarly = timeDifference.isNegative; // Negative difference means we're early
+        final minutesAway = absTimeDifference;
+        
+        String errorMessage;
+        Color? errorColor;
+        
+        if (isEarly) {
+          errorMessage = '🕐 QR Code scanned too early!\n\n'
+              'Scheduled Start: ${_formatTime(booking.startTime)}\n'
+              'Current Time: ${_formatTime(now)}\n'
+              'Bookings can only be activated within 5 minutes of the scheduled time.\n'
+              '\nPlease scan again in ${minutesAway - 5} minutes.';
+          errorColor = Colors.orange;
+        } else {
+          errorMessage = '❌ QR Code scanned too late!\n\n'
+              'Scheduled Start: ${_formatTime(booking.startTime)}\n'
+              'Current Time: ${_formatTime(now)}\n'
+              'Bookings can only be activated within 5 minutes of the scheduled time.\n'
+              '\nThis booking has expired.';
+          errorColor = Colors.red;
+        }
+        
+        // Show a dialog instead of snackbar for better visibility
+        _showTimeWindowError(errorMessage, errorColor);
         return;
       }
       
@@ -108,6 +129,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
         SnackBar(
           content: Text(message),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -117,6 +139,57 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
         setState(() {});
       }
     });
+  }
+
+  void _showTimeWindowError(String message, Color? color) {
+    if (!mounted) return;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              color == Colors.orange ? Icons.schedule : Icons.error_outline,
+              color: color,
+              size: 28,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                color == Colors.orange ? 'Too Early!' : 'Too Late!',
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Text(
+            message,
+            style: const TextStyle(fontSize: 14),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Resume scanning
+              setState(() {
+                _isProcessing = false;
+              });
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   String _formatTime(DateTime time) {

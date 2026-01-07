@@ -6,7 +6,6 @@ import 'package:unicharge/providers/booking_provider.dart';
 import 'package:unicharge/features/dashboard/widgets/charging_status_card.dart';
 import 'package:unicharge/features/dashboard/widgets/recent_activity_card.dart';
 import 'package:unicharge/widgets/booking_timer_widget.dart';
-import 'package:unicharge/widgets/debug_hot_reload.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -86,10 +85,6 @@ class DashboardScreen extends ConsumerWidget {
                     loading: () => const Center(child: CircularProgressIndicator()),
                     error: (error, stack) => const SizedBox.shrink(),
                   ),
-
-                  // Debug hot reload widget
-                  const DebugHotReloadWidget(),
-                  const SizedBox(height: 16),
 
                   // Recent activity
                   Text(

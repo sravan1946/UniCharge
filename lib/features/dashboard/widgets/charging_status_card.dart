@@ -122,6 +122,27 @@ class ChargingStatusCard extends ConsumerWidget {
     );
   }
 
+  int _calculateBatteryLevel(BookingModel booking) {
+    if (booking.endTime == null) {
+      return 75; // Default if no end time
+    }
+
+    final now = DateTime.now();
+    final totalDuration = booking.endTime!.difference(booking.startTime);
+    final timeElapsed = now.difference(booking.startTime);
+    
+    if (totalDuration.inMinutes == 0) {
+      return 100;
+    }
+
+    // Calculate battery as percentage of time elapsed
+    // Start from 20% and charge to 100% over the session duration
+    final progressRatio = timeElapsed.inMinutes / totalDuration.inMinutes;
+    
+    // Clamp between 20% and 100%
+    return ((20 + (progressRatio * 80)).clamp(20.0, 100.0)).round();
+  }
+
   Widget _buildInfoItem(
     BuildContext context,
     String label,
@@ -162,64 +183,208 @@ class ChargingStatusCard extends ConsumerWidget {
   }
 
   Widget _buildReservedStatus(BuildContext context, WidgetRef ref, BookingModel booking) {
+    final now = DateTime.now();
+    final timeUntilStart = booking.startTime.difference(now);
+    final isStartingSoon = timeUntilStart.inMinutes <= 15 && timeUntilStart.inMinutes > 0;
+    
     return Column(
       children: [
-        const Icon(
-          Icons.schedule,
-          size: 48,
-          color: Colors.white70,
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            booking.startTime.isBefore(now) ? Icons.check_circle_outline : Icons.schedule,
+            size: 48,
+            color: isStartingSoon ? Colors.orange : Colors.white70,
+          ),
         ),
         const SizedBox(height: 16),
-        _buildInfoItem(
-          context,
-          'Booking Time',
-          '${booking.durationHours} hours',
-          Icons.access_time,
+        Text(
+          isStartingSoon 
+              ? 'Starting soon!'
+              : booking.startTime.isBefore(now)
+                  ? 'Ready to activate'
+                  : 'Upcoming booking',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: isStartingSoon ? Colors.orange : Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        const SizedBox(height: 12),
-        _buildInfoItem(
-          context,
-          'End Time',
-          booking.endTime != null
-              ? '${booking.endTime!.hour.toString().padLeft(2, '0')}:${booking.endTime!.minute.toString().padLeft(2, '0')}'
-              : 'N/A',
-          Icons.event,
+        const SizedBox(height: 4),
+        Text(
+          _getTimeDisplay(booking, now),
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildCompactInfoItem(
+                context,
+                'Duration',
+                '${booking.durationHours}h',
+                Icons.access_time,
+              ),
+              Container(
+                width: 1,
+                height: 30,
+                color: Colors.white.withValues(alpha: 0.2),
+              ),
+              _buildCompactInfoItem(
+                context,
+                'Price',
+                '₹${booking.totalPrice.toStringAsFixed(0)}',
+                Icons.currency_rupee,
+              ),
+              Container(
+                width: 1,
+                height: 30,
+                color: Colors.white.withValues(alpha: 0.2),
+              ),
+              _buildCompactInfoItem(
+                context,
+                'End',
+                booking.endTime != null
+                    ? '${booking.endTime!.hour.toString().padLeft(2, '0')}:${booking.endTime!.minute.toString().padLeft(2, '0')}'
+                    : 'N/A',
+                Icons.event,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getTimeDisplay(BookingModel booking, DateTime now) {
+    final difference = booking.startTime.difference(now);
+    
+    if (difference.isNegative) {
+      return 'Booking is ready to activate';
+    }
+    
+    if (difference.inDays > 0) {
+      return 'Starts in ${difference.inDays} day${difference.inDays > 1 ? 's' : ''}';
+    }
+    
+    if (difference.inHours > 0) {
+      return 'Starts in ${difference.inHours} hour${difference.inHours > 1 ? 's' : ''}';
+    }
+    
+    return 'Starts in ${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''}';
+  }
+
+  Widget _buildCompactInfoItem(BuildContext context, String label, String value, IconData icon) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          color: Colors.white.withValues(alpha: 0.8),
+          size: 18,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 10,
+          ),
         ),
       ],
     );
   }
 
   Widget _buildActiveStatus(BuildContext context, SlotModel? slot, BookingModel booking) {
+    final now = DateTime.now();
+    final timeRemaining = booking.endTime?.difference(now);
+    final batteryLevel = _calculateBatteryLevel(booking);
+    
     return Column(
       children: [
         // Charging animation
-        const Center(
+        Center(
           child: RiveChargingWidget(
-            batteryLevel: 75, // TODO: Get actual battery level
+            batteryLevel: batteryLevel,
             isCharging: true,
           ),
         ),
         const SizedBox(height: 16),
         
-        // Charging details
+        // Time remaining prominently displayed
+        if (timeRemaining != null && timeRemaining.inMinutes > 0)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: timeRemaining.inMinutes < 15 ? Colors.orange : Colors.white.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.timer_outlined,
+                  color: timeRemaining.inMinutes < 15 ? Colors.orange : Colors.white,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  timeRemaining.inMinutes < 60
+                      ? '${timeRemaining.inMinutes} min remaining'
+                      : '${timeRemaining.inHours}h ${timeRemaining.inMinutes % 60}min remaining',
+                  style: TextStyle(
+                    color: timeRemaining.inMinutes < 15 ? Colors.orange : Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 16),
+        
+        // Charging details in compact grid
         Row(
           children: [
             Expanded(
               child: _buildInfoItem(
                 context,
-                'Battery Level',
-                '75%',
+                'Battery',
+                '$batteryLevel%',
                 Icons.battery_charging_full,
               ),
             ),
+            Container(width: 8),
             Expanded(
               child: _buildInfoItem(
                 context,
-                booking.endTime != null ? 'Time Remaining' : 'Duration',
-                booking.endTime != null
-                    ? '${booking.endTime!.difference(DateTime.now()).inMinutes}min'
-                    : '${booking.durationHours}h',
-                Icons.timer,
+                'Speed',
+                '50 kW',
+                Icons.speed,
               ),
             ),
           ],
@@ -230,15 +395,16 @@ class ChargingStatusCard extends ConsumerWidget {
             Expanded(
               child: _buildInfoItem(
                 context,
-                'Charging Speed',
-                '50 kW',
-                Icons.speed,
+                'Start Time',
+                '${booking.startTime.hour.toString().padLeft(2, '0')}:${booking.startTime.minute.toString().padLeft(2, '0')}',
+                Icons.play_arrow,
               ),
             ),
+            Container(width: 8),
             Expanded(
               child: _buildInfoItem(
                 context,
-                'Session Cost',
+                'Total Cost',
                 '₹${booking.totalPrice.toStringAsFixed(0)}',
                 Icons.currency_rupee,
               ),

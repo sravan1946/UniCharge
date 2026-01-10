@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'bloc/app_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
+import 'services/auth_state.dart';
 import 'services/appwrite_service.dart';
-import 'services/location_service.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/admin_dashboard.dart';
-import 'screens/settings_screen.dart';
 import 'screens/config_screen.dart';
 import 'constants/appwrite_config.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load environment variables from .env file
+  try {
+    await dotenv.load(fileName: ".env");
+    print("✅ Environment variables loaded from .env file");
+  } catch (e) {
+    print("⚠️ Could not load .env file: $e");
+    print("Using system environment variables instead");
+  }
+  
   // Print configuration status
   AppwriteConfig.printConfig();
   
@@ -23,15 +31,8 @@ class UniChargeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (context) => AppBloc(
-            appwriteService: AppwriteService(),
-            locationService: LocationService(),
-          ),
-        ),
-      ],
+    return ChangeNotifierProvider(
+      create: (_) => AuthState(),
       child: MaterialApp(
         title: 'UniCharge',
         theme: ThemeData(
@@ -49,8 +50,45 @@ class UniChargeApp extends StatelessWidget {
   }
 }
 
-class AppWrapper extends StatelessWidget {
+class AppWrapper extends StatefulWidget {
   const AppWrapper({super.key});
+
+  @override
+  State<AppWrapper> createState() => _AppWrapperState();
+}
+
+class _AppWrapperState extends State<AppWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    // Schedule session check after the current build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkSession();
+    });
+  }
+
+  Future<void> _checkSession() async {
+    if (!mounted) return;
+    
+    final authState = context.read<AuthState>();
+    authState.setLoading(true);
+    
+    try {
+      // Check if there's an existing session
+      final appwriteService = AppwriteService();
+      final user = await appwriteService.getCurrentUser();
+      
+      if (user != null && mounted) {
+        authState.setUser(user);
+      }
+    } catch (e) {
+      // No existing session
+    } finally {
+      if (mounted) {
+        authState.setLoading(false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,13 +97,19 @@ class AppWrapper extends StatelessWidget {
       return const ConfigScreen();
     }
 
-    return BlocBuilder<AppBloc, AppState>(
-      builder: (context, state) {
-        if (state is AppLoaded && state.currentUser != null) {
-          return const HomeScreen();
-        } else {
-          return const AuthScreen();
+    return Consumer<AuthState>(
+      builder: (context, authState, _) {
+        if (authState.isLoading) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
+
+        if (authState.isAuthenticated) {
+          return const HomeScreen();
+        }
+
+        return const AuthScreen();
       },
     );
   }

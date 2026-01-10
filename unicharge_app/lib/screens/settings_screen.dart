@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/app_bloc.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_state.dart';
+import '../services/appwrite_service.dart';
 import 'config_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -171,26 +172,45 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showSignOutDialog(BuildContext context) {
-    showDialog(
+  Future<void> _showSignOutDialog(BuildContext context) async {
+    final shouldSignOut = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Sign Out'),
         content: const Text('Are you sure you want to sign out?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.read<AppBloc>().add(SignOut());
-            },
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Sign Out'),
           ),
         ],
       ),
     );
+
+    if (shouldSignOut == true) {
+      _signOut(context);
+    }
+  }
+
+  Future<void> _signOut(BuildContext context) async {
+    try {
+      final appwriteService = AppwriteService();
+      await appwriteService.signOut();
+      
+      final authState = context.read<AuthState>();
+      authState.signOut();
+      
+      // Navigation happens automatically via AppWrapper watching authState
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to sign out: $e')),
+        );
+      }
+    }
   }
 }

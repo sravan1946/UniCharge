@@ -61,28 +61,39 @@ class _AppWrapperState extends State<AppWrapper> {
   @override
   void initState() {
     super.initState();
-    // Schedule session check after the current build
+    // Check for persisted session and verify with Appwrite
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkSession();
+      _initializeAuth();
     });
   }
 
-  Future<void> _checkSession() async {
+  Future<void> _initializeAuth() async {
     if (!mounted) return;
     
     final authState = context.read<AuthState>();
-    authState.setLoading(true);
+    
+    // First load any persisted user data
+    await authState.loadPersistedUser();
+    
+    if (!mounted) return;
     
     try {
-      // Check if there's an existing session
+      // Verify session with Appwrite
       final appwriteService = AppwriteService();
       final user = await appwriteService.getCurrentUser();
       
       if (user != null && mounted) {
         authState.setUser(user);
+      } else if (mounted) {
+        // No valid session, ensure user is cleared
+        authState.setUser(null);
       }
     } catch (e) {
-      // No existing session
+      print('Error checking session: $e');
+      // No existing session, ensure user is cleared
+      if (mounted) {
+        authState.setUser(null);
+      }
     } finally {
       if (mounted) {
         authState.setLoading(false);

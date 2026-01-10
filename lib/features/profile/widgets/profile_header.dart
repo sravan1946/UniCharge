@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:appwrite/models.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ProfileHeader extends StatelessWidget {
   final User user;
@@ -32,8 +32,8 @@ class ProfileHeader extends StatelessWidget {
             CircleAvatar(
               radius: 40,
               backgroundColor: Colors.white.withValues(alpha: 0.2),
-              child: Text(
-                user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+            child: Text(
+              (user.displayName?.isNotEmpty ?? false) ? user.displayName![0].toUpperCase() : 'U',
                 style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -45,7 +45,7 @@ class ProfileHeader extends StatelessWidget {
             
             // User name
             Text(
-              user.name,
+              user.displayName ?? 'User',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -55,7 +55,7 @@ class ProfileHeader extends StatelessWidget {
             
             // Email
             Text(
-              user.email,
+              user.email ?? 'No email',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Colors.white.withValues(alpha: 0.8),
               ),
@@ -69,12 +69,12 @@ class ProfileHeader extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child:             Text(
-              'Member since ${_formatDate(DateTime.parse(user.$createdAt))}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white,
+              child: Text(
+                'Member since ${_formatDate(user.metadata.creationTime ?? DateTime.now())}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.white,
+                ),
               ),
-            ),
             ),
           ],
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:unicharge/providers/location_provider.dart';
 import 'package:unicharge/providers/stations_provider.dart';
 import 'package:unicharge/models/enums.dart';
@@ -17,6 +18,20 @@ class _StationsListScreenState extends ConsumerState<StationsListScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   StationType? _selectedFilter;
+  double _radiusKm = 50.0; // Default radius
+  bool _showAll = true; // Show all stations by default
+
+  @override
+  void initState() {
+    super.initState();
+    // Load stations when the screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final position = ref.read(locationStateProvider).value;
+      if (position != null) {
+        _applyFilters(position);
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -31,7 +46,7 @@ class _StationsListScreenState extends ConsumerState<StationsListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nearby Stations'),
+        title: const Text('Stations'),
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),
@@ -75,11 +90,12 @@ class _StationsListScreenState extends ConsumerState<StationsListScreen> {
           ),
 
           // Filter chips
-          if (_selectedFilter != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                if (_selectedFilter != null)
                   Chip(
                     label: Text(_selectedFilter!.displayName),
                     onDeleted: () {
@@ -89,9 +105,18 @@ class _StationsListScreenState extends ConsumerState<StationsListScreen> {
                     },
                     deleteIcon: const Icon(Icons.close, size: 18),
                   ),
-                ],
-              ),
+                Chip(
+                  label: Text(_showAll ? 'All Stations' : 'Within ${_radiusKm.toInt()}km'),
+                  onDeleted: () {
+                    setState(() {
+                      _showAll = !_showAll;
+                    });
+                  },
+                  avatar: Icon(_showAll ? Icons.location_off : Icons.location_on),
+                ),
+              ],
             ),
+          ),
 
           // Stations list
           Expanded(
@@ -111,8 +136,16 @@ class _StationsListScreenState extends ConsumerState<StationsListScreen> {
                   );
                 }
 
+                // Load stations if not already loaded
+                final currentState = stationsState;
+                if (currentState is AsyncValue<List<StationModel>> && currentState.value == null) {
+                  _applyFilters(position);
+                }
+
                 return stationsState.when(
                   data: (stations) {
+                    print('Displaying ${stations.length} stations');
+                    // Apply filter to stations
                     final filteredStations = _filterStations(stations);
                     
                     if (filteredStations.isEmpty) {
@@ -146,7 +179,11 @@ class _StationsListScreenState extends ConsumerState<StationsListScreen> {
 
                     return RefreshIndicator(
                       onRefresh: () async {
-                        ref.read(stationsStateProvider.notifier).refreshStations(position);
+                        ref.read(stationsStateProvider.notifier).loadNearbyStations(
+                          position,
+                          radiusKm: _radiusKm,
+                          showAll: _showAll,
+                        );
                       },
                       child: ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -238,6 +275,7 @@ class _StationsListScreenState extends ConsumerState<StationsListScreen> {
   }
 
   void _showFilterBottomSheet() {
+    final position = ref.read(locationStateProvider).value;
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(
@@ -251,6 +289,58 @@ class _StationsListScreenState extends ConsumerState<StationsListScreen> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 20),
+            
+            // Distance filter
+            Text(
+              'Distance',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Switch(
+                    value: _showAll,
+                    onChanged: (value) {
+                      setState(() {
+                        _showAll = value;
+                      });
+                      Navigator.pop(context);
+                      // Apply filters after closing dialog
+                      _applyFilters(position);
+                    },
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Text(_showAll ? 'Show All Stations' : 'Show Nearby Only'),
+                ),
+              ],
+            ),
+            if (!_showAll) ...[
+              Text(
+                'Radius: ${_radiusKm.toInt()} km',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              Slider(
+                value: _radiusKm,
+                min: 5.0,
+                max: 100.0,
+                divisions: 19,
+                label: '${_radiusKm.toInt()} km',
+                onChanged: (value) {
+                  setState(() {
+                    _radiusKm = value;
+                  });
+                  // Apply radius immediately
+                  _applyFilters(position);
+                },
+              ),
+            ],
+            
+            const SizedBox(height: 20),
+            
+            // Station type filter
             Text(
               'Station Type',
               style: Theme.of(context).textTheme.titleMedium,
@@ -306,5 +396,16 @@ class _StationsListScreenState extends ConsumerState<StationsListScreen> {
         ),
       ),
     );
+  }
+
+  void _applyFilters(Position? position) {
+    if (position != null) {
+      print('Loading stations: showAll=$_showAll, radius=${_radiusKm}km');
+      ref.read(stationsStateProvider.notifier).loadNearbyStations(
+        position,
+        radiusKm: _radiusKm,
+        showAll: _showAll,
+      );
+    }
   }
 }

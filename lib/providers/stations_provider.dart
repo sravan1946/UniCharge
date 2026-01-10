@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
-import '../services/appwrite_database_service.dart';
+import '../services/firestore_database_service.dart';
 import '../models/station_model.dart';
 import '../models/slot_model.dart';
 
 // Database service provider
-final databaseServiceProvider = Provider<AppwriteDatabaseService>((ref) {
-  return AppwriteDatabaseService();
+final databaseServiceProvider = Provider<FirestoreDatabaseService>((ref) {
+  return FirestoreDatabaseService();
 });
 
 // Nearby stations provider
@@ -15,7 +15,7 @@ final nearbyStationsProvider = FutureProvider.family<List<StationModel>, Positio
   return await databaseService.getNearbyStations(
     latitude: position.latitude,
     longitude: position.longitude,
-    radiusKm: 10.0,
+    radiusKm: 50.0, // Increased to 50km to show more stations
   );
 });
 
@@ -49,17 +49,29 @@ final slotsStateProvider = StateNotifierProvider.family<SlotsStateNotifier, Asyn
 });
 
 class StationsStateNotifier extends StateNotifier<AsyncValue<List<StationModel>>> {
-  final AppwriteDatabaseService _databaseService;
+  final FirestoreDatabaseService _databaseService;
 
   StationsStateNotifier(this._databaseService) : super(const AsyncValue.loading());
 
-  Future<void> loadNearbyStations(Position position) async {
+  double _radiusKm = 50.0;
+  bool _showAll = true;
+
+  void setRadius(double radiusKm) {
+    _radiusKm = radiusKm;
+  }
+
+  void setShowAll(bool showAll) {
+    _showAll = showAll;
+  }
+
+  Future<void> loadNearbyStations(Position position, {double? radiusKm, bool? showAll}) async {
     try {
       state = const AsyncValue.loading();
       final stations = await _databaseService.getNearbyStations(
         latitude: position.latitude,
         longitude: position.longitude,
-        radiusKm: 10.0,
+        radiusKm: radiusKm ?? _radiusKm,
+        showAll: showAll ?? _showAll,
       );
       state = AsyncValue.data(stations);
     } catch (e) {
@@ -73,7 +85,7 @@ class StationsStateNotifier extends StateNotifier<AsyncValue<List<StationModel>>
 }
 
 class SlotsStateNotifier extends StateNotifier<AsyncValue<List<SlotModel>>> {
-  final AppwriteDatabaseService _databaseService;
+  final FirestoreDatabaseService _databaseService;
   final String _stationId;
 
   SlotsStateNotifier(this._databaseService, this._stationId) : super(const AsyncValue.loading()) {

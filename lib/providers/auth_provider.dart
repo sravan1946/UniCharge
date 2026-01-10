@@ -1,20 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:unicharge/services/appwrite_auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:unicharge/services/firebase_auth_service.dart';
 import 'package:unicharge/models/user_profile_model.dart';
 
 // Auth service provider
-final authServiceProvider = Provider<AppwriteAuthService>((ref) {
-  return AppwriteAuthService();
+final authServiceProvider = Provider<FirebaseAuthService>((ref) {
+  return FirebaseAuthService();
 });
 
 // Current user provider
-final currentUserProvider = FutureProvider<dynamic>((ref) async {
+final currentUserProvider = FutureProvider<User?>((ref) async {
   final authService = ref.watch(authServiceProvider);
   return await authService.getCurrentUser();
 });
 
 // Auth state provider
-final authStateProvider = StateNotifierProvider<AuthStateNotifier, AsyncValue<dynamic>>((ref) {
+final authStateProvider = StateNotifierProvider<AuthStateNotifier, AsyncValue<User?>>((ref) {
   return AuthStateNotifier(ref.watch(authServiceProvider));
 });
 
@@ -25,8 +26,8 @@ final userProfileProvider = FutureProvider.family<UserProfileModel?, String>((re
   return null;
 });
 
-class AuthStateNotifier extends StateNotifier<AsyncValue<dynamic>> {
-  final AppwriteAuthService _authService;
+class AuthStateNotifier extends StateNotifier<AsyncValue<User?>> {
+  final FirebaseAuthService _authService;
 
   AuthStateNotifier(this._authService) : super(const AsyncValue.loading()) {
     _checkAuthState();

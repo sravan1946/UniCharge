@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/appwrite_database_service.dart';
+import '../services/firestore_database_service.dart';
 import '../models/booking_model.dart';
 import '../models/enums.dart';
 
 // Booking service provider
-final bookingServiceProvider = Provider<AppwriteDatabaseService>((ref) {
-  return AppwriteDatabaseService();
+final bookingServiceProvider = Provider<FirestoreDatabaseService>((ref) {
+  return FirestoreDatabaseService();
 });
 
 // User bookings provider
@@ -31,7 +31,7 @@ final createBookingNotifierProvider = StateNotifierProvider<CreateBookingNotifie
 });
 
 class BookingStateNotifier extends StateNotifier<AsyncValue<List<BookingModel>>> {
-  final AppwriteDatabaseService _databaseService;
+  final FirestoreDatabaseService _databaseService;
 
   BookingStateNotifier(this._databaseService) : super(const AsyncValue.loading());
 
@@ -75,7 +75,7 @@ class BookingStateNotifier extends StateNotifier<AsyncValue<List<BookingModel>>>
 }
 
 class CreateBookingNotifier extends StateNotifier<AsyncValue<BookingModel?>> {
-  final AppwriteDatabaseService _databaseService;
+  final FirestoreDatabaseService _databaseService;
 
   CreateBookingNotifier(this._databaseService) : super(const AsyncValue.data(null));
 

@@ -20,6 +20,7 @@ class BookingModel with _$BookingModel {
     required DateTime createdAt,
     DateTime? cancelledAt,
     String? cancellationReason,
+    String? qrToken, // Secure token for QR code verification
   }) = _BookingModel;
 
   factory BookingModel.fromJson(Map<String, dynamic> json) =>

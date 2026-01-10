@@ -4,6 +4,7 @@ import 'package:unicharge/providers/auth_provider.dart';
 import 'package:unicharge/features/profile/widgets/profile_header.dart';
 import 'package:unicharge/features/profile/widgets/profile_stats.dart';
 import 'package:unicharge/features/profile/widgets/profile_settings.dart';
+import 'package:unicharge/features/admin/screens/qr_scanner_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -55,6 +56,10 @@ class ProfileScreen extends ConsumerWidget {
                 const ProfileSettings(),
                 const SizedBox(height: 24),
 
+                // Admin Section
+                _buildAdminSection(context),
+                const SizedBox(height: 24),
+
                 // Logout button
                 SizedBox(
                   width: double.infinity,
@@ -93,6 +98,60 @@ class ProfileScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAdminSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.admin_panel_settings,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Admin Access',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const QrScannerScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.qr_code_scanner),
+              label: const Text('Scan Booking QR Code'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

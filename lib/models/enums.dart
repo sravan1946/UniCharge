@@ -72,6 +72,7 @@ enum BatteryStatus {
 enum BookingStatus {
   pending,
   active,
+  reserved,
   completed,
   cancelled;
 
@@ -81,6 +82,8 @@ enum BookingStatus {
         return 'Pending';
       case BookingStatus.active:
         return 'Active';
+      case BookingStatus.reserved:
+        return 'Reserved';
       case BookingStatus.completed:
         return 'Completed';
       case BookingStatus.cancelled:

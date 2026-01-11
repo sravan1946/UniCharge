@@ -76,6 +76,9 @@ dev_dependencies:
   
   # Linting
   flutter_lints: ^3.0.0
+  
+  # App Icon
+  flutter_launcher_icons: ^0.14.1
 
 flutter:
   uses-material-design: true
@@ -95,3 +98,22 @@ flutter:
   #         weight: 600
   #       - asset: assets/fonts/Inter-Bold.ttf
   #         weight: 700
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.jpeg"
+  remove_alpha_ios: true
+  min_sdk_android: 21 # Android min sdk min:16, default 21
+  web:
+    generate: true
+    image_path: "assets/images/logo.jpeg"
+    background_color: "#3B82F6"
+    theme_color: "#3B82F6"
+  windows:
+    generate: true
+    image_path: "assets/images/logo.jpeg"
+    icon_size: 48 # min:48, max:256, default: 48
+  macos:
+    generate: true
+    image_path: "assets/images/logo.jpeg"

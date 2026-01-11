@@ -237,42 +237,66 @@ class _BookingStatusAnimationState extends ConsumerState<BookingStatusAnimation>
   }
 
   Widget _buildActiveIndicator(BookingModel booking) {
+    // Position at top-right corner as a subtle floating badge
+    final appBarHeight = kToolbarHeight;
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+    
     return Positioned(
-      top: 50,
-      left: 16,
-      right: 16,
+      top: appBarHeight + statusBarHeight + 12,
+      right: 12,
       child: AnimatedBuilder(
         animation: _pulseController,
         builder: (context, child) {
           return Transform.scale(
             scale: _pulseAnimation.value,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.green,
-                borderRadius: BorderRadius.circular(25),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.green.withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    spreadRadius: 2,
+                    color: Colors.green.withValues(alpha: 0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
                 ],
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.play_circle_filled,
-                    color: Colors.white,
-                    size: 20,
+                  // Pulsing dot indicator
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Session Active',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    'Active',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ],

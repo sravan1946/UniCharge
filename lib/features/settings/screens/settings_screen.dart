@@ -1,29 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ProfileSettings extends ConsumerStatefulWidget {
-  const ProfileSettings({super.key});
+class SettingsScreen extends ConsumerStatefulWidget {
+  const SettingsScreen({super.key});
 
   @override
-  ConsumerState<ProfileSettings> createState() => _ProfileSettingsState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isDarkMode = false;
   bool _notificationsEnabled = true;
   bool _locationTrackingEnabled = true;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      child: Padding(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Settings'),
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Preferences section
             Text(
-              'Settings',
+              'Preferences',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -82,16 +85,16 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
                 },
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 32),
             
-            // Additional settings
+            // Account section
             Text(
               'Account',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             
             _buildActionTile(
               context,
@@ -102,7 +105,7 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
                 // TODO: Navigate to edit profile
               },
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             
             _buildActionTile(
               context,
@@ -113,7 +116,27 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
                 // TODO: Navigate to payment methods
               },
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            
+            _buildActionTile(
+              context,
+              'Saved Addresses',
+              'Manage your saved locations',
+              Icons.location_city,
+              () {
+                // TODO: Navigate to saved addresses
+              },
+            ),
+            const SizedBox(height: 32),
+            
+            // Legal section
+            Text(
+              'Legal',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
             
             _buildActionTile(
               context,
@@ -124,7 +147,7 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
                 // TODO: Show privacy policy
               },
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             
             _buildActionTile(
               context,
@@ -133,6 +156,17 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
               Icons.description,
               () {
                 // TODO: Show terms of service
+              },
+            ),
+            const SizedBox(height: 12),
+            
+            _buildActionTile(
+              context,
+              'About',
+              'Version and app information',
+              Icons.info,
+              () {
+                // TODO: Show about dialog
               },
             ),
           ],
@@ -148,42 +182,52 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
     IconData icon,
     Widget trailing,
   ) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.primary,
-            size: 20,
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-            ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: Theme.of(context).colorScheme.primary,
+              size: 20,
+            ),
           ),
-        ),
-        trailing,
-      ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          trailing,
+        ],
+      ),
     );
   }
 
@@ -196,9 +240,16 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
   ) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+          ),
+        ),
+        padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             Container(
@@ -243,3 +294,4 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
     );
   }
 }
+

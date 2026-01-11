@@ -36,9 +36,13 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<User?>> {
   Future<void> _checkAuthState() async {
     try {
       final user = await _authService.getCurrentUser();
-      state = AsyncValue.data(user);
+      if (mounted) {
+        state = AsyncValue.data(user);
+      }
     } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+      if (mounted) {
+        state = AsyncValue.error(e, StackTrace.current);
+      }
     }
   }
 
@@ -47,7 +51,9 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<User?>> {
     required String password,
     required String name,
   }) async {
-    state = const AsyncValue.loading();
+    if (mounted) {
+      state = const AsyncValue.loading();
+    }
     try {
       await _authService.signUp(
         email: email,
@@ -56,7 +62,9 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<User?>> {
       );
       await _checkAuthState();
     } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+      if (mounted) {
+        state = AsyncValue.error(e, StackTrace.current);
+      }
       rethrow;
     }
   }
@@ -65,12 +73,16 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<User?>> {
     required String email,
     required String password,
   }) async {
-    state = const AsyncValue.loading();
+    if (mounted) {
+      state = const AsyncValue.loading();
+    }
     try {
       await _authService.login(email: email, password: password);
       await _checkAuthState();
     } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+      if (mounted) {
+        state = AsyncValue.error(e, StackTrace.current);
+      }
       rethrow;
     }
   }
@@ -78,9 +90,13 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<User?>> {
   Future<void> logout() async {
     try {
       await _authService.logout();
-      state = const AsyncValue.data(null);
+      if (mounted) {
+        state = const AsyncValue.data(null);
+      }
     } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+      if (mounted) {
+        state = AsyncValue.error(e, StackTrace.current);
+      }
     }
   }
 }

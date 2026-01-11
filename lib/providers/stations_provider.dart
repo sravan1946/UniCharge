@@ -9,6 +9,23 @@ final databaseServiceProvider = Provider<FirestoreDatabaseService>((ref) {
   return FirestoreDatabaseService();
 });
 
+// Real-time slot status provider
+final slotStatusProvider = StreamProvider.family<SlotModel?, String>((ref, slotId) {
+  final databaseService = ref.watch(databaseServiceProvider);
+  
+  return databaseService.subscribeToSlots('temp').map((slots) {
+    // Find the specific slot by ID
+    return slots.where((s) => s.id == slotId).firstOrNull;
+  });
+});
+
+// Real-time station slots provider with availability checking
+final stationSlotsWithAvailabilityProvider = StreamProvider.family<List<SlotModel>, String>((ref, stationId) {
+  final databaseService = ref.watch(databaseServiceProvider);
+  
+  return databaseService.subscribeToSlots(stationId);
+});
+
 // Nearby stations provider
 final nearbyStationsProvider = FutureProvider.family<List<StationModel>, Position>((ref, position) async {
   final databaseService = ref.watch(databaseServiceProvider);
@@ -32,15 +49,21 @@ final stationByIdProvider = FutureProvider.family<StationModel?, String>((ref, s
   }
 });
 
-// Station slots provider
-final stationSlotsProvider = FutureProvider.family<List<SlotModel>, String>((ref, stationId) async {
+// Station slots provider - stream-based for real-time updates
+final stationSlotsProvider = StreamProvider.family<List<SlotModel>, String>((ref, stationId) {
   final databaseService = ref.watch(databaseServiceProvider);
-  return await databaseService.getSlotsByStationId(stationId);
+  return databaseService.subscribeToSlots(stationId);
 });
 
 // Stations state provider
 final stationsStateProvider = StateNotifierProvider<StationsStateNotifier, AsyncValue<List<StationModel>>>((ref) {
   return StationsStateNotifier(ref.watch(databaseServiceProvider));
+});
+
+// Real-time stations provider
+final realtimeStationsProvider = StreamProvider<List<StationModel>>((ref) {
+  final databaseService = ref.watch(databaseServiceProvider);
+  return databaseService.subscribeToStations();
 });
 
 // Slots state provider
@@ -66,16 +89,22 @@ class StationsStateNotifier extends StateNotifier<AsyncValue<List<StationModel>>
 
   Future<void> loadNearbyStations(Position position, {double? radiusKm, bool? showAll}) async {
     try {
-      state = const AsyncValue.loading();
+      if (mounted) {
+        state = const AsyncValue.loading();
+      }
       final stations = await _databaseService.getNearbyStations(
         latitude: position.latitude,
         longitude: position.longitude,
         radiusKm: radiusKm ?? _radiusKm,
         showAll: showAll ?? _showAll,
       );
-      state = AsyncValue.data(stations);
+      if (mounted) {
+        state = AsyncValue.data(stations);
+      }
     } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+      if (mounted) {
+        state = AsyncValue.error(e, StackTrace.current);
+      }
     }
   }
 
@@ -94,11 +123,17 @@ class SlotsStateNotifier extends StateNotifier<AsyncValue<List<SlotModel>>> {
 
   Future<void> loadSlots() async {
     try {
-      state = const AsyncValue.loading();
+      if (mounted) {
+        state = const AsyncValue.loading();
+      }
       final slots = await _databaseService.getSlotsByStationId(_stationId);
-      state = AsyncValue.data(slots);
+      if (mounted) {
+        state = AsyncValue.data(slots);
+      }
     } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+      if (mounted) {
+        state = AsyncValue.error(e, StackTrace.current);
+      }
     }
   }
 
@@ -118,9 +153,13 @@ class SlotsStateNotifier extends StateNotifier<AsyncValue<List<SlotModel>>> {
         reservedUntil: reservedUntil,
       );
       // Reload slots to get updated data
-      await loadSlots();
+      if (mounted) {
+        await loadSlots();
+      }
     } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+      if (mounted) {
+        state = AsyncValue.error(e, StackTrace.current);
+      }
     }
   }
 

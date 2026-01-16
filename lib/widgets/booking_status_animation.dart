@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unicharge/providers/auth_provider.dart';
-import 'package:unicharge/providers/realtime_provider.dart';
+import 'package:unicharge/providers/booking_provider.dart';
 import 'package:unicharge/models/booking_model.dart';
 import 'package:unicharge/models/enums.dart';
 

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:crypto/crypto.dart';
 
 class QrTokenService {
@@ -7,7 +6,7 @@ class QrTokenService {
   // Format: bookingId:timestamp:signature
   static String generateSecureToken(String bookingId) {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final secret = _generateSecret();
+    final secret = _getSecret();
     
     // Create signature with bookingId + timestamp + secret
     final signatureInput = '$bookingId:$timestamp:$secret';
@@ -27,6 +26,7 @@ class QrTokenService {
       
       final tokenBookingId = parts[0];
       final timestamp = int.tryParse(parts[1]);
+      final tokenSignature = parts[2];
       
       // Verify bookingId matches
       if (tokenBookingId != bookingId) return false;
@@ -39,8 +39,14 @@ class QrTokenService {
       
       if (diff > 24) return false;
       
-      // Token is valid if structure is correct and not expired
-      return true;
+      // Verify signature
+      final secret = _getSecret();
+      final expectedSignatureInput = '$bookingId:$timestamp:$secret';
+      final bytes = utf8.encode(expectedSignatureInput);
+      final digest = sha256.convert(bytes);
+      final expectedSignature = digest.toString().substring(0, 16);
+      
+      return tokenSignature == expectedSignature;
     } catch (e) {
       return false;
     }
@@ -59,13 +65,11 @@ class QrTokenService {
     }
   }
   
-  // Generate a simple secret for signing
-  static String _generateSecret() {
+  // Get a consistent secret for signing
+  static String _getSecret() {
     // In production, this should be stored securely
     // For now, we'll use a deterministic secret based on some constants
-    final random = Random.secure();
-    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
-    return base64Encode(bytes);
+    return 'unicharge_qr_secret_2024';
   }
   
   // Check if token is expired

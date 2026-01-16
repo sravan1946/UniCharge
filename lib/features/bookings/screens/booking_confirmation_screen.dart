@@ -56,11 +56,6 @@ class BookingConfirmationScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             
-            // Activation time window info
-            _buildActivationWindowInfo(context),
-            
-            const SizedBox(height: 24),
-            
             // QR Code
             Container(
               padding: const EdgeInsets.all(24),
@@ -193,64 +188,5 @@ class BookingConfirmationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActivationWindowInfo(BuildContext context) {
-    final now = DateTime.now();
-    final timeDifference = now.difference(booking.startTime).inMinutes.abs();
-    final isWithinWindow = timeDifference <= 5;
-    
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isWithinWindow 
-            ? Colors.green.withValues(alpha: 0.1)
-            : Colors.orange.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isWithinWindow 
-              ? Colors.green.withValues(alpha: 0.3)
-              : Colors.orange.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            isWithinWindow ? Icons.check_circle : Icons.schedule,
-            color: isWithinWindow ? Colors.green : Colors.orange,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isWithinWindow 
-                      ? 'Ready to Activate'
-                      : 'Activation Window',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: isWithinWindow ? Colors.green : Colors.orange,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  isWithinWindow
-                      ? 'You can scan this QR code now'
-                      : 'Can be activated ${_formatTime(booking.startTime)} ±5 minutes',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatTime(DateTime time) {
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-  }
 }
 

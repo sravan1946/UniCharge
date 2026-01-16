@@ -380,7 +380,6 @@ class FirestoreDatabaseService {
 
   /// Mark a reserved booking as occupied (when QR code is scanned)
   /// This transitions the booking from reserved → active and slot from reserved → occupied
-  /// Only allows activation within ±5 minutes of the scheduled start time
   Future<void> activateBooking({
     required String bookingId,
     required String slotId,
@@ -390,17 +389,6 @@ class FirestoreDatabaseService {
       final booking = await getBookingById(bookingId);
       if (booking == null) {
         throw Exception('Booking not found');
-      }
-
-      // Check if booking is within the allowed time window (±5 minutes)
-      if (!_isWithinActivationWindow(booking.startTime)) {
-        final now = DateTime.now();
-        final timeDiff = now.difference(booking.startTime).inMinutes;
-        throw Exception(
-          'Booking can only be activated within 5 minutes of the scheduled start time. '
-          'Scheduled: ${_formatTime(booking.startTime)}, Current: ${_formatTime(now)}. '
-          'Time difference: ${timeDiff.abs()} minutes'
-        );
       }
 
       // Update booking status to active
@@ -419,18 +407,6 @@ class FirestoreDatabaseService {
     } on FirebaseException catch (e) {
       throw _handleDatabaseException(e);
     }
-  }
-
-  /// Check if current time is within ±5 minutes of the booking start time
-  bool _isWithinActivationWindow(DateTime startTime) {
-    final now = DateTime.now();
-    final timeDifference = now.difference(startTime).inMinutes.abs();
-    return timeDifference <= 5;
-  }
-
-  /// Format time for error messages
-  String _formatTime(DateTime time) {
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
   /// Complete a booking and free up the slot
@@ -720,6 +696,7 @@ class FirestoreDatabaseService {
               'createdAt': (data['createdAt'] as Timestamp?)?.toDate().toIso8601String(),
               'cancelledAt': (data['cancelledAt'] as Timestamp?)?.toDate().toIso8601String(),
               'cancellationReason': data['cancellationReason'],
+              'qrToken': data['qrToken'],
             });
           }).toList();
         });

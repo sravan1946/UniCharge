@@ -2,6 +2,13 @@
 
 **UniCharge** is a comprehensive **Smart Parking & EV Charging Management Platform** built with **Flutter**. It streamlines the process of finding, booking, and managing parking spots and EV charging stations.
 
+<div align="center">
+  <img src="assets/readme_images/home.jpeg" alt="Home" width="200"/>
+  <img src="assets/readme_images/map.jpeg" alt="Map" width="200"/>
+  <img src="assets/readme_images/station.jpeg" alt="Station" width="200"/>
+  <img src="assets/readme_images/dashboard.jpeg" alt="Dashboard" width="200"/>
+</div>
+
 ## 🚀 Key Features
 
 *   **Smart Booking System**: Reserve parking spots and EV charging stations in advance.

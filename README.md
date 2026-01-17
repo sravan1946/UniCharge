@@ -18,6 +18,13 @@
 *   **Interactive UI**: Smooth animations and transitions using Rive.
 *   **Role-Based Access**: distinct flows for Users and Admins.
 
+## 🎮 Demo Access
+
+Use the following credentials to explore the app:
+
+*   **Email**: `demouser@gmail.com`
+*   **Password**: `demouser123`
+
 ## 🛠️ Tech Stack
 
 *   **Framework**: [Flutter](https://flutter.dev/) (SDK >=3.0.0 <4.0.0)
